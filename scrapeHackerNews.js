@@ -4,8 +4,9 @@ var fs = require('fs');
 var request = require('request');
 var cheerio = require('cheerio');
 var sanitizer = require("sanitizer");
+var Promise = require('promise');
+var Q = require('q');
 
-var superSet = [];
 
 // https://news.ycombinator.com/
 
@@ -13,9 +14,11 @@ request('https://news.ycombinator.com', function (error, response, html) {
   if (!error && response.statusCode == 200) {
     var $ = cheerio.load(html);
     $('span.comhead').each(function(i, element){
+      metadata = {};
       var a = $(this).prev();
       var rank = a.parent().parent().text();
       var title = a.text();
+      
       var url = a.attr('href');
       var subtext = a.parent().parent().next().children('.subtext').children();
       var points = $(subtext).eq(0).text();
@@ -28,20 +31,24 @@ request('https://news.ycombinator.com', function (error, response, html) {
         url: url,
         points: parseInt(points),
         username: username,
-        comments: parseInt(comments)
+        comments: parseInt(comments),
+        fileName: title.replace(/[^\w\s]|_/g, "").replace(/\s+/g, "").replace(/ +?/g, '').toLowerCase()
       };
-      // console.log(metadata);
-      scrapeSite(url, title);
-      // scraper(url, function (data) {
-      //   console.log("# %s #\n\n%s\n\n---", data.title, data.contents);
-      //   getWords(data);
-      // }); 
-      
+
+      scrapeSite(url, title, metadata);
+
+      // fs.writeFile('./json/' + metadata.fileName + '.json', JSON.stringify(metadata), function (err) {
+      //   if (err) throw err;
+      //   console.log('It\'s saved! ', title);
+      // }));
+      console.log('yo', metadata)
     });
   }
 });
 
-var scrapeSite = function(url, title, error, response, html){
+
+
+var scrapeSite = function(url, title, metadata, error, response, html){
   var phraseMem = {};
   var wordMem = {};
   request(url, function (error, response, html) {
@@ -49,49 +56,34 @@ var scrapeSite = function(url, title, error, response, html){
       var $ = cheerio.load(html);
       var bodyText = $('body *').text();
       bodyText = stripHTML(bodyText);
-      bodyText = bodyText.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
       bodyText = bodyText.replace(/(\r\n|\n|\r|\t)/gm,"");
-
+      bodyText = bodyText.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
       var words = bodyText.split(' ');
+      var wordcount = 0;
       for (var i = 0; i < words.length; i++){
-        if (words[i].length<20){
+        if (words[i].length<20&&!parseInt(words[i])){
           words[i] = words[i].toLowerCase();
-          // superSet.push(words[i]);
           if (words[i] in wordMem){
+            wordcount++;
             wordMem[words[i]]++;
           } else {
+            wordcount++;
             wordMem[words[i]] = 0;
           }
         }
       }
-      fs.writeFile('./json/' + title+'Words.json', JSON.stringify(wordMem), function (err) {
+      metadata.wordtable=wordMem;
+      metadata.wordcount=wordcount;
+      fs.writeFile('./json/' + metadata.fileName + '.json', JSON.stringify(metadata), function (err) {
         if (err) throw err;
-        console.log('It\'s saved! ', title+'Words.json');
-        superSet = superSet.concat(words);
-          var wordMem = {};
-          console.log('YO!!!!',superSet);
-          for (var i = 0; i < superSet.length; i++){
-            if (superSet[i].length<20){
-
-              if (superSet[i] in wordMem){
-                wordMem[superSet[i]]++;
-              } else {
-                wordMem[superSet[i]] = 0;
-              }
-              
-            }
-          }
-          fs.writeFile('Words.json', JSON.stringify(wordMem), function (err) {
-            if (err) throw err;
-            console.log('It\'s saved! ','Words.json');
-          }); 
-        // console.log(superSet);
+        console.log('It\'s saved! ', title);
       });    
     }
   });
+  return wordMem;
 }
 
-function stripHTML(html) {
+var stripHTML = function (html) {
     var clean = sanitizer.sanitize(html, function (str) {
         return str;
     });
@@ -100,7 +92,7 @@ function stripHTML(html) {
     return clean.trim();
 }
 
-function replaceAllBackSlash(targetStr){
+var replaceAllBackSlash = function (targetStr){
   var index=targetStr.indexOf("\\");
   while(index >= 0){
       targetStr=targetStr.replace("\\","");
