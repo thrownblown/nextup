@@ -72,8 +72,15 @@ var scrapeSite = function(url, title, metadata, error, response, html){
           }
         }
       }
-      metadata.wordtable=wordMem;
-      metadata.wordcount=wordcount;
+      var element_count = 0;
+      for(var e in wordMem) { 
+        if(wordMem.hasOwnProperty(e)){
+          element_count++;
+        }
+      };
+      metadata.wordcount = wordcount;
+      metadata.wordunique = element_count;
+      metadata.wordtable = wordMem;
       fs.writeFile('./json/' + metadata.fileName + '.json', JSON.stringify(metadata), function (err) {
         if (err) throw err;
         console.log('It\'s saved! ', title);
