@@ -24,7 +24,6 @@ request('https://news.ycombinator.com', function (error, response, html) {
       var points = $(subtext).eq(0).text();
       var username = $(subtext).eq(1).text();
       var comments = $(subtext).eq(2).text();
-      // Our parsed meta data object
       var metadata = {
         rank: parseInt(rank),
         title: title,
@@ -34,14 +33,7 @@ request('https://news.ycombinator.com', function (error, response, html) {
         comments: parseInt(comments),
         fileName: title.replace(/[^\w\s]|_/g, "").replace(/\s+/g, "").replace(/ +?/g, '').toLowerCase()
       };
-
       scrapeSite(url, title, metadata);
-
-      // fs.writeFile('./json/' + metadata.fileName + '.json', JSON.stringify(metadata), function (err) {
-      //   if (err) throw err;
-      //   console.log('It\'s saved! ', title);
-      // }));
-      console.log('yo', metadata)
     });
   }
 });
