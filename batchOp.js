@@ -173,7 +173,7 @@ var updateRelationshipIndexBatch = function (relationshipID, reqID) {
   return {cmd: cmd, reqID: reqID };
 };
 
-var batchInsert = function (doc, requestID) {
+var batchInsert = function (doc, requestID, num) {
   requestID = requestID || 0;
   var query = [];
 
@@ -229,7 +229,7 @@ var batchInsert = function (doc, requestID) {
     }
 
   }
-  consoleStart(query, "Batch Insert Query");
+  consoleStart(query, "Batch Insert Query " + num);
   return {query: query, reqID: requestID};
 };
 
@@ -246,7 +246,8 @@ var batchInsert = function (doc, requestID) {
   c. if doc and word insertion is successful, update master Dict?
 */
 
-var updateDict = function (newWords, result) {
+var updateDict = function (newWords, result, num) {
+  num = num || 0;
   for (var i = 0; i < newWords.length; i++) {
     var word = newWords[i].word;
     var id = newWords[i].reqID;
@@ -258,10 +259,22 @@ var updateDict = function (newWords, result) {
     masterDict[word].nodeNum = nodeNum; 
     masterDict[word].loc = loc;
   }
-  consoleStart(masterDict, "Newly added words");
+  consoleStart(masterDict, "Newly added words " + num);
   // empty the words to be added
-  newWords = [];
+  wordsToAdd = [];
   return masterDict;
+};
+
+// recursive function that inserts docs only when the previous document has been inserted
+var insertBatchRec = function (result, response, documentList, num) {
+  if (documentList.length === 0) { return; }
+  consoleStart(result, "Result after " + num + " insert");
+  updateDict(wordsToAdd, result, num);
+  var doc = documentList.pop();
+  rest.postJson(batchURL, batchInsert(doc, 0, num+1).query)
+    .on("complete", function (result, response) {
+      insertBatchRec(result, response, documentList, ++num);
+    });
 };
 
 // clear data base first for testing purposes
@@ -272,30 +285,22 @@ rest.postJson(cypherURL, clearQuery()).on("complete", function (result, response
       // create a dictionary first after querying
       addToDict(result, masterDict);
 
-      // batch operation to insert document and its relationship with words
-      rest.postJson(batchURL, batchInsert(dummyDoc1).query)
-        .on("complete", function (result, response) {
-          consoleStart(result, "RESULT after first batch insert");
-          updateDict(wordsToAdd, result);
+      insertBatchRec(result, response, docList, 0);
 
-          rest.postJson(batchURL, batchInsert(dummyDoc2).query)
-            .on("complete", function (result, response){
-              consoleStart(result, "RESULT after SECOND batch insert");
-            });
-        });
+      // // batch operation to insert document and its relationship with words
+      // rest.postJson(batchURL, batchInsert(dummyDoc1).query)
+      //   .on("complete", function (result, response) {
+      //     consoleStart(result, "RESULT after first batch insert");
+      //     updateDict(wordsToAdd, result);
+
+      //     rest.postJson(batchURL, batchInsert(dummyDoc2).query)
+      //       .on("complete", function (result, response){
+      //         consoleStart(result, "RESULT after SECOND batch insert");
+      //       });
+      //   });
     });
 });
 
-var insertBatchRec = function (result, response, docList, num) {
-  if (docList.length === 0) { return; }
-  consoleStart(result, "Result after " + num + " insert");
-  updateDict(wordsToAdd, result);
-  var doc = docList.pop();
-  rest.postJson(batchUrl, batchInsert(doc).query)
-    .on("complete", function (result, response) {
-      insertBatchRec(result, response, docList, ++num);
-    });
-};
 
 /*
   http://localhost:7474/db/data/index/relationship/MyIndex/?uniqueness=get_or_create
