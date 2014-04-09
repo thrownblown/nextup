@@ -22,6 +22,7 @@ var getNodeNum = function (nodeAddress) {
 var addToDict = function (result, master) {
   var len = result.data.length;
   console.log("len: ", len);
+
   for (var i = 0; i < len; i++) {
     var word = result.data[i][0].data.word;
     if (master[word] === undefined) {
@@ -42,15 +43,23 @@ var addToDict = function (result, master) {
 // assumption: only create a master dictionary during big batch imports
 // master dictionary has word and it's node location in the neo4j database
 var masterDict = {};
+var wordsToAdd = [];
+
 var masterDictQuery = function () {
   var data = {};
   data.query = "MATCH (w:Word) RETURN w";
   return data;
 };
 
+var clearQuery = function () {
+  var data = {};
+  data.query = "MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r";
+  return data;
+};
+
 // DUMMY DATA
-var dummyDoc = {
-  title : "greg report",
+var dummyDoc1 = {
+  title : "greg one",
   url   : "http://www.gregorylull.com",
   words : {
     i    : 1,
@@ -59,6 +68,31 @@ var dummyDoc = {
   },
   length : 3,
 };
+
+var dummyDoc2 = {
+  title : "greg two",
+  url   : "http://www.iamthelull.com",
+  words : {
+    i    : 1,
+    want : 1,
+    dogs : 1
+  },
+  length : 3,
+};
+
+var dummyDoc3 = {
+  title : "greg three",
+  url   : "http://www.glull.com",
+  words : {
+    i    : 1,
+    need : 1,
+    dogs : 1,
+    too  : 1
+  },
+  length : 4,
+};
+
+var docList = [dummyDoc1, dummyDoc2, dummyDoc3];
 
 // creates the query to insert a doc
 // returns an obj with the query and its request id {query: query, reqID: reqID}
@@ -100,15 +134,13 @@ var addLabelBatch = function (label, nodeID, reqID) {
 };
 
 var createRelationshipBatch = function (docID, wordID, reqID, isInMasterDict) {
-  var toDoc;
+  var toDoc = "{" + docID + "}/relationships";
   var toNodeRel;
 
   // if the word was 
   if (isInMasterDict) {
-    toDoc = docID + "/relationships";
     toNodeRel = "" + wordID;
   } else {
-    toDoc = "{" + docID + "}/relationships";
     toNodeRel = "{" + wordID +"}";
   }
 
@@ -151,6 +183,11 @@ var batchInsert = function (doc, requestID) {
   query.push(docCMD.cmd);
   requestID++;
 
+  // add label to Doc
+  var labelCMD = addLabelBatch("Document", docCMD.reqID, requestID);
+  query.push(labelCMD.cmd);
+  requestID++
+
   // iterate through words and create queries in order
   for (var word in doc.words) {
     // if word is not in list, insert word node first THEN create relationship
@@ -158,6 +195,9 @@ var batchInsert = function (doc, requestID) {
       var wordCMD = insertWordBatch(word, requestID);
       query.push(wordCMD.cmd);
       requestID++;
+
+      // add word to list of words to be added to master dict after batch op. complete
+      wordsToAdd.push({word: word, reqID: wordCMD.reqID});
 
       // add a label to the word
       var labelCMD = addLabelBatch("Word", wordCMD.reqID, requestID);
@@ -206,22 +246,56 @@ var batchInsert = function (doc, requestID) {
   c. if doc and word insertion is successful, update master Dict?
 */
 
-// query database to create master dictionary
-rest.postJson(cypherURL, masterDictQuery())
-  .on("complete", function (result, response) {
-    // create a dictionary first after querying
-    addToDict(result, masterDict);
+var updateDict = function (newWords, result) {
+  for (var i = 0; i < newWords.length; i++) {
+    var word = newWords[i].word;
+    var id = newWords[i].reqID;
+    var resultObj = result[id];
+    var loc = resultObj.location;
+    var nodeNum = getNodeNum(loc);
+    masterDict[word] = {};
+    masterDict[word].word = word;
+    masterDict[word].nodeNum = nodeNum; 
+    masterDict[word].loc = loc;
+  }
+  consoleStart(masterDict, "Newly added words");
+  // empty the words to be added
+  newWords = [];
+  return masterDict;
+};
 
-    // batch operation to insert document and its relationship with words
-    rest.postJson(batchURL, batchInsert(dummyDoc).query)
-      .on("complete", function (result, response) {
-        consoleStart(result, "RESULT after batch insert");
-        consoleStart(response, "RESPONSE after batch insert");
-        // for (var i = 0; i < result.data.length; i++) {
-        //   console.log(result[i][0]);
-        // }
-      });
-  });
+// clear data base first for testing purposes
+rest.postJson(cypherURL, clearQuery()).on("complete", function (result, response) {
+  // query database to create master dictionary
+  rest.postJson(cypherURL, masterDictQuery())
+    .on("complete", function (result, response) {
+      // create a dictionary first after querying
+      addToDict(result, masterDict);
+
+      // batch operation to insert document and its relationship with words
+      rest.postJson(batchURL, batchInsert(dummyDoc1).query)
+        .on("complete", function (result, response) {
+          consoleStart(result, "RESULT after first batch insert");
+          updateDict(wordsToAdd, result);
+
+          rest.postJson(batchURL, batchInsert(dummyDoc2).query)
+            .on("complete", function (result, response){
+              consoleStart(result, "RESULT after SECOND batch insert");
+            });
+        });
+    });
+});
+
+var insertBatchRec = function (result, response, docList, num) {
+  if (docList.length === 0) { return; }
+  consoleStart(result, "Result after " + num + " insert");
+  updateDict(wordsToAdd, result);
+  var doc = docList.pop();
+  rest.postJson(batchUrl, batchInsert(doc).query)
+    .on("complete", function (result, response) {
+      insertBatchRec(result, response, docList, ++num);
+    });
+};
 
 /*
   http://localhost:7474/db/data/index/relationship/MyIndex/?uniqueness=get_or_create
