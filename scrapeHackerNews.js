@@ -48,7 +48,7 @@ request('https://news.ycombinator.com', function (error, response, html) {
 
 
 
-var scrapeSite = function(url, title, metadata, error, response, html){
+module.exports = scrapeSite = function(url, title, metadata, error, response, html){
   var phraseMem = {};
   var wordMem = {};
   request(url, function (error, response, html) {
