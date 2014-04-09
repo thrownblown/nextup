@@ -187,7 +187,7 @@ var createRelationshipBatch = function (docID, wordID, reqID, isInMasterDict, tf
 
 // not exactly sure why this relationship needs to be created / updated
 // *question* when updating properties ON relationships, does this need to be updated?
-var updateRelationshipIndexBatch = function (relationshipID, reqID) {
+var updateRelationshipIndexBatch = function (relationshipID, reqID, tfValue) {
   var cmd = {};
   cmd.id = reqID;
   cmd.method = "POST";
@@ -195,7 +195,7 @@ var updateRelationshipIndexBatch = function (relationshipID, reqID) {
   cmd.body = {
     uri : "{" + relationshipID + "}",
     key : "TF",
-    value : 123
+    value : tfValue
   };
   return {cmd: cmd, reqID: reqID };
 };
@@ -267,7 +267,7 @@ var batchInsert = function (doc, requestID, num) {
       requestID++;
 
       // update relationship index
-      var relIndexCMD = updateRelationshipIndexBatch(relCMD.reqID, requestID);
+      var relIndexCMD = updateRelationshipIndexBatch(relCMD.reqID, requestID, tfValue);
       query.push(relIndexCMD.cmd);
       requestID++;
 
@@ -303,10 +303,11 @@ var batchInsert = function (doc, requestID, num) {
       query.push(getConCMD.cmd);
       requestID++;
 
+      // update connections in the master Dict
       wordsToUpdate.push({word: word, connectionID: getConCMD.reqID});
 
       // update the relationship index
-      var relIndexCMD = updateRelationshipIndexBatch(relCMD.reqID, requestID);
+      var relIndexCMD = updateRelationshipIndexBatch(relCMD.reqID, requestID, tfValue);
       query.push(relIndexCMD.cmd);
       requestID++;
     }
@@ -367,7 +368,10 @@ var insertBatchRec = function (result, response, documentList, num) {
   consoleStart(result, "Result after " + num + " insert");
   updateDict(wordsToAdd, result, num);
   updateConnections(wordsToUpdate, result, num);
+
+  //
   if (documentList.length === 0) { return; }
+
   var doc = documentList.pop();
 
   rest.postJson(batchURL, batchInsert(doc, 0, num+1).query)
