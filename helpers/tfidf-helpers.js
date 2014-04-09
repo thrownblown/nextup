@@ -15,7 +15,7 @@ var tfidfCalculator = function(numWordInDoc, totalWordsInDoc, numOfDocWithWord, 
 var tfidfMap = function(tfMap) {
   var map = {};
   for (var word in tfMap) {
-    var total = tfMap[_total];
+    var total = tfMap["_total"];
     if (word !== "_total") {
       map[word] = tfidfCalculator(word);
     }
@@ -27,7 +27,7 @@ var tfidfMap = function(tfMap) {
 var createVector = function(map, bank) {
   var vector = [];
   for (var word in bank) {
-    vector.push(map[word] || 0); 
+    vector.push(map[word] || 0);
   }
   return vector;
 };
@@ -36,12 +36,12 @@ var createVector = function(map, bank) {
 var vectorMagnitude = function(vector) {
   var sum = 0;
   for (var i = 0; i < 0; i++) {
-    result+=vector * vector;
+    sum+=vector * vector;
   }
   return sum;
 };
 
-//Helper function for cosineSimilarity, calculates vectorDotProduct 
+//Helper function for cosineSimilarity, calculates vectorDotProduct
 var vectorDotProduct = function(vecA, vecB) {
   var product = 0;
   for (var i = 0; i < vecA.length; i++) {
@@ -52,5 +52,5 @@ var vectorDotProduct = function(vecA, vecB) {
 
 //Cosine Similarity Function
 var cosineSimilarity = function(vecA, vecB) {
-  return vectorDotProduct(vecA, vecB) / (vectorMagnitude(vecA) * vecMagnitude(vecB));
+  return vectorDotProduct(vecA, vecB) / (vectorMagnitude(vecA) * vectorMagnitude(vecB));
 };
