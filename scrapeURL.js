@@ -1,88 +1,140 @@
 #!/usr/bin/env node
 
-var sanitizer = require("sanitizer");
 var fs = require('fs');
 var request = require('request');
 var cheerio = require('cheerio');
+var sanitizer = require("sanitizer");
+// var Promise = require('promise');
+// var Q = require('q');
+
 
 // https://news.ycombinator.com/
 
 request('https://news.ycombinator.com', function (error, response, html) {
-  if (!error && response.statusCode == 200) {
+  if (!error && response.statusCode === 200) {
     var $ = cheerio.load(html);
     $('span.comhead').each(function(i, element){
+      metadata = {};
       var a = $(this).prev();
       var rank = a.parent().parent().text();
       var title = a.text();
+
       var url = a.attr('href');
       var subtext = a.parent().parent().next().children('.subtext').children();
       var points = $(subtext).eq(0).text();
       var username = $(subtext).eq(1).text();
       var comments = $(subtext).eq(2).text();
-      // Our parsed meta data object
       var metadata = {
         rank: parseInt(rank),
         title: title,
         url: url,
         points: parseInt(points),
         username: username,
-        comments: parseInt(comments)
+        comments: parseInt(comments),
+        fileName: title.replace(/[^\w\s]|_/g, "").replace(/\s+/g, "").replace(/ +?/g, '').toLowerCase()
       };
-      console.log(metadata);
-      scrapeSite(url, title);
-      // scraper(url, function (data) {
-      //   console.log("# %s #\n\n%s\n\n---", data.title, data.contents);
-      //   getWords(data);
-      // }); 
-      
+      scrapeSite(url, title, metadata);
     });
   }
 });
 
-var scrapeSite = function(url, title, error, response, html){
-  var phraseMem = {};
-  var wordAbeMem = {};
+
+
+var scrapeSite = function(url, title, metadata, error, response, html){
+  var obj = {
+    wordtable: {},
+    wordcount: 0,
+    wordunique: 0
+  };
   request(url, function (error, response, html) {
     if (!error && response.statusCode == 200) {
       var $ = cheerio.load(html);
-      var bigBlock = $('body *').text();
-      bigBlock = stripHTML(bigBlock);
-      bigBlock = bigBlock.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
-      bigBlock = bigBlock.replace(/(\r\n|\n|\r|\t)/gm,"");
-
-      var words = bigBlock.split(' ');
+      var bodyText = $('body *').text();
+      bodyText = stripHTML(bodyText);
+      bodyText = bodyText.replace(/(\r\n|\n|\r|\t)/gm,"");
+      bodyText = bodyText.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
+      var words = bodyText.split(' ');
+      obj.wordcount = 0;
       for (var i = 0; i < words.length; i++){
-        if (words[i].length<20){
+        if (words[i].length<20&&!parseInt(words[i])){
           words[i] = words[i].toLowerCase();
-          if (words[i] in wordAbeMem){
-            wordAbeMem[words[i]]++;
+          if (words[i] in obj.wordtable){
+            obj.wordcount++;
+            obj.wordtable[words[i]]++;
           } else {
-            wordAbeMem[words[i]] = 0;
+            obj.wordcount++;
+            obj.wordtable[words[i]] = 0;
           }
         }
       }
-      fs.writeFile(title+'Words.json', JSON.stringify(wordAbeMem), function (err) {
+      for(var e in obj.wordtable) {
+        if(obj.wordtable.hasOwnProperty(e)){
+          obj.wordunique++;
+        }
+      }
+      metadata.wordunique = obj.wordunique;
+      metadata.wordcount = obj.wordcount;
+      metadata.wordtable = obj.wordtable;
+      fs.writeFile('./json/' + metadata.fileName + '.json', JSON.stringify(metadata), function (err) {
         if (err) throw err;
-        console.log('It\'s saved! ', title+'Words.json');
-      });    
+        console.log('It\'s saved! ', title);
+      });
     }
   });
-}
+  return metadata;
+};
 
-function stripHTML(html) {
-    var clean = sanitizer.sanitize(html, function (str) {
-        return str;
-    });
-    clean = clean.replace(/<(?:.|\n)*?>/gm, "");
-    clean = clean.replace(/(?:(?:\r\n|\r|\n)\s*){2,}/ig, "\n");
-    return clean.trim();
-}
+module.exports = function(url){
+  var returnObj = {
+    wordtable: {},
+    wordcount: 0,
+    wordunique: 0
+  };
+  request(url, function (error, response, html) {
+    if (!error && response.statusCode == 200) {
+      var $ = cheerio.load(html);
+      var bodyText = $('body *').text();
+      bodyText = stripHTML(bodyText);
+      bodyText = bodyText.replace(/(\r\n|\n|\r|\t)/gm,"");
+      bodyText = bodyText.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
+      var words = bodyText.split(' ');
+      returnObj.wordcount = 0;
+      for (var i = 0; i < words.length; i++){
+        if (words[i].length<20&&!parseInt(words[i])){
+          words[i] = words[i].toLowerCase();
+          if (words[i] in returnObj.wordtable){
+            returnObj.wordcount++;
+            returnObj.wordtable[words[i]]++;
+          } else {
+            returnObj.wordcount++;
+            returnObj.wordtable[words[i]] = 0;
+          }
+        }
+      }
+      for(var e in returnObj.wordtable) {
+        if(returnObj.wordtable.hasOwnProperty(e)){
+          returnObj.wordunique++;
+        }
+      }
+    }
+    return returnObj;
+  });
+};
 
-function replaceAllBackSlash(targetStr){
+var stripHTML = function (html) {
+  var clean = sanitizer.sanitize(html, function (str) {
+    return str;
+  });
+  clean = clean.replace(/<(?:.|\n)*?>/gm, "");
+  clean = clean.replace(/(?:(?:\r\n|\r|\n)\s*){2,}/ig, "\n");
+  return clean.trim();
+};
+
+var replaceAllBackSlash = function (targetStr){
   var index=targetStr.indexOf("\\");
   while(index >= 0){
       targetStr=targetStr.replace("\\","");
       index=targetStr.indexOf("\\");
   }
   return targetStr;
-}
+};
