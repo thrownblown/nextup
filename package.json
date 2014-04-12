@@ -9,6 +9,7 @@
     "express": "3.5.1",
     "jade": "*",
     "node-neo4j": "^2.0.0-RC6",
-    "restler": "~3.2.0"
+    "restler": "~3.2.0",
+    "mv": "~2.0.0"
   }
 }
