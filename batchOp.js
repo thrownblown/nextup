@@ -378,6 +378,24 @@ var updateConnections = function (wToUpdate, results, num) {
   wordsToUpdate = [];
   return masterDict;
 };
+// Creates tfidf properties, creates vectors and cosine similarity
+var cosineSimilarityInsertion = function(url) {
+  var tfidfQuery = { query: "MATCH (n:Document) WITH count(DISTINCT n) AS totalDocs MATCH (d:Document)-[r:HAS]->(w:Word) WITH r.tf AS tf,w.connections AS totalRel,log((totalDocs)/(w.connections)) AS idf,d,r,w SET r.TFIDF = toFloat(tf) * toFloat(idf)"};
+  var vectorQuery = { query: "MATCH (d:Document)-[r:HAS]->(w:Word) WITH SQRT(REDUCE(dot = 0, a IN COLLECT(r.TFIDF) | dot + a*a)) AS vector, d SET d.vector = vector"};
+  var cosSimQuery = { query: "MATCH (d1:Document)-[x:HAS]->(w:Word)<-[y:HAS]-(d2:Document) WITH SUM(x.TFIDF * y.TFIDF) AS xyDotProduct, d1.vector AS xMagnitude, d2.vector AS yMagnitude, d1, d2 CREATE UNIQUE (d1)-[s:SIMILARITY]-(d2) SET s.similarity = xyDotProduct / (xMagnitude * yMagnitude)"};
+  rest.postJson(url, tfidfQuery)
+  .on("complete", function(result, response) {
+    console.log("TFIDF Query Complete", result, "Starting Vector Query");
+    rest.postJson(url, vectorQuery)
+    .on("complete", function(result, response) {
+      console.log("Vector Query Complete", result, "Starting Cosine Similarity Query");
+      rest.postJson(url, cosSimQuery)
+      .on("complete", function(result, response) {
+        console.log("Cosine Similarity Query Complete", result);
+      });
+    });
+  });
+};
 
 // recursive function that inserts docs only when the previous document has been inserted
 var insertBatchRec = function (result, response, documentList, num) {
@@ -385,23 +403,8 @@ var insertBatchRec = function (result, response, documentList, num) {
   updateDict(wordsToAdd, result, num);
   updateConnections(wordsToUpdate, result, num);
 
-  //
   if (documentList.length === 0) {
-    var tfidfQuery = { query: "MATCH (n:Document) WITH count(DISTINCT n) AS totalDocs MATCH (d:Document)-[r:HAS]->(w:Word) WITH r.tf AS tf,w.connections AS totalRel,log((totalDocs)/(w.connections)) AS idf,d,r,w SET r.TFIDF = toFloat(tf) * toFloat(idf)"};
-    var vectorQuery = { query: "MATCH (d:Document)-[r:HAS]->(w:Word) WITH SQRT(REDUCE(dot = 0, a IN COLLECT(r.TFIDF) | dot + a*a)) AS vector, d SET d.vector = vector"};
-    var cosSimQuery = { query: "MATCH (d1:Document)-[x:HAS]->(w:Word)<-[y:HAS]-(d2:Document) WITH SUM(x.TFIDF * y.TFIDF) AS xyDotProduct, d1.vector AS xMagnitude, d2.vector AS yMagnitude, d1, d2 CREATE UNIQUE (d1)-[s:SIMILARITY]-(d2) SET s.similarity = xyDotProduct / (xMagnitude * yMagnitude)"};
-    rest.postJson("http://localhost:7474/db/data/cypher", tfidfQuery)
-    .on("complete", function(result, response) {
-      console.log("TFIDF Query Complete", result, "Starting Vector Query");
-      rest.postJson("http://localhost:7474/db/data/cypher", vectorQuery)
-      .on("complete", function(result, response) {
-        console.log("Vector Query Complete", result, "Starting Cosine Similarity Query");
-        rest.postJson("http://localhost:7474/db/data/cypher", cosSimQuery)
-        .on("complete", function(result, response) {
-          console.log("Cosine Similarity Query Complete", result);
-        });
-      });
-    });
+    cosineSimilarityInsertion(cypherURL);
     return; 
   }
 
