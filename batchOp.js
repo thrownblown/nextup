@@ -266,7 +266,7 @@ var batchInsert = function (doc, requestID, num) {
   // iterate through words and create queries in order
   for (var word in doc.wordtable) {
     // if word is not in master dictionary, insert word node first THEN create relationship
-    var tfValue = (doc.wordtable[word] / doc.wordcount).toFixed(5);
+    var tfValue = (doc.wordtable[word] / (doc.wordcount+1)).toFixed(10);
     if (masterDict[word] === undefined) {
       var wordCMD = insertWordBatch(word, requestID);
       query.push(wordCMD.cmd);
