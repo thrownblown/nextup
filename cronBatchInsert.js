@@ -26,10 +26,10 @@ var CronJob = require('cron');
 var batch   = require('./batchOp.js');
 
 // Cron job
-new CronJob.CronJob( "*/15 * * * * *", function () {
-  console.log( "every 15 seconds execute checkDir");
-  checkDir();
-}, null, true, "America/Los_Angeles");
+// new CronJob.CronJob( "*/15 * * * * *", function () {
+//   console.log( "every 15 seconds execute checkDir");
+//   checkDir();
+// }, null, true, "America/Los_Angeles");
 
 // global variables
 var filesToMove = [];
@@ -60,6 +60,7 @@ var consoleStart = function (data, title) {
 // reads a directory and returns a list of files
 var readJsonDir = function (fromSource) {
   return fs.readdirAsync(fromSource).map(function (filename, index) {
+    console.log("executes if empty?");
     var fileSource = path.join(fromSource, filename);
     filesToMove.push(filename);
     return fs.readFileAsync(fileSource, "utf8").then(JSON.parse);

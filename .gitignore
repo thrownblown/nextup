@@ -31,3 +31,4 @@ node_modules
 json/*
 scrapeArchive/*
 dummyJSON/*
+testCron/*
