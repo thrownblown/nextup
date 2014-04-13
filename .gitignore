@@ -29,6 +29,3 @@ results
 npm-debug.log
 node_modules
 json/*
-scrapeArchive/*
-dummyJSON/*
-testCron/*

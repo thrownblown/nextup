@@ -143,8 +143,9 @@ var moveJson = function (fromSource, toDest, filenameList) {
       var fileDest = path.join(toDest, filename);
 
       // move each file asynchronously from source to destination
-      // clobber argument should overwrite destination files
-      mv(fileSource, fileDest, {clobber: true}, function (err){ 
+      // clobber property should overwrite destination files
+      // mkdirp property should create directory if not exist
+      mv(fileSource, fileDest, {clobber: true, mkdirp: true}, function (err){ 
         consoleStart(err, 'file move error')
       });
     });
