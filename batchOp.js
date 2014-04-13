@@ -11,7 +11,7 @@ PLAN:
   c. if doc and word insertion is successful, update master dictionar
   d. insert rest of doc recursively
 */
-
+var docFetch = require("./docFetch.js");
 var rest = require('restler');
 
 var batchURL = "http://localhost:7474/db/data/batch";
@@ -392,6 +392,8 @@ var cosineSimilarityInsertion = function(url) {
       rest.postJson(url, cosSimQuery)
       .on("complete", function(result, response) {
         console.log("Cosine Similarity Query Complete", result);
+        // Test Cosine Similarity fetcher
+        // docFetch.cosSimFetch(url, "Dropbox for Business", 0.0, 10);
       });
     });
   });
