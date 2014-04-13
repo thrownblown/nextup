@@ -22,8 +22,17 @@ var Promise = require('bluebird');
 var mv = require('mv');
 var path = require('path');
 var fs = Promise.promisifyAll(require('fs'));
+var CronJob = require('cron');
+var batch   = require('./batchOp.js');
 
-// GLOBAL VARIABLES
+// Cron job
+new CronJob.CronJob( "*/15 * * * * *", function () {
+  console.log( "every 15 seconds execute checkDir");
+  checkDir();
+}, null, true, "America/Los_Angeles");
+
+// global variables
+var filesToMove = [];
 
 // PATH
 // assuming cronBatchInsert is on the same level as app.js for now
@@ -52,40 +61,48 @@ var consoleStart = function (data, title) {
 var readJsonDir = function (fromSource) {
   return fs.readdirAsync(fromSource).map(function (filename, index) {
     var fileSource = path.join(fromSource, filename);
+    filesToMove.push(filename);
     return fs.readFileAsync(fileSource, "utf8").then(JSON.parse);
   });
 };
-
 
 var batchTest = function (fileList) {
   consoleStart(fileList, "file list from readddir");
 };
 
-// readJsonDir(testDir)
-//   .then(batchTest)
-//   .caught(consoleStart);
+var checkDir = function () {
+  readJsonDir(testDir)
+    .then(function (fileList) {
+      batch.readAndInsertBatch(fileList, function () {
+        moveJson(filesToMove, dummyJSON, scrapeArchive);
+      });
+    })
+    .caught(consoleStart);
+};
 
 // moves specific files from one directory to another directory
+// if directory is empty, nothing happens. if dest directory has the same file name, it is overwritten
 var moveJson = function (filenameList, fromSource, toDest) {
   if (!filenameList || !fromSource || !toDest) { throw "filename or path not specified"; }
-  consoleStart(filenameList, "list of filenames");
-  consoleStart(fromSource, "fromSource name");
-  consoleStart(toDest, "toDest name");
+  else if (filenameList.length === 0) { consoleStart(filenameList, fromSource + " directory empty"); }
 
   for (var i = 0; i < filenameList.length; i++) {
     var fileSource = path.join(fromSource, filenameList[i]);
     var fileDest = path.join(toDest, filenameList[i]);
-    mv(fileSource, fileDest, function (err){ 
+    mv(fileSource, fileDest, {clobber: true}, function (err){ 
       consoleStart(err, 'file move error')
     });
   }
+
+  // clear files to move
+  filesToMove = [];
 };
 
-// for testing
-fs.readdir(testDir, function (err, filenames) {
-  if (err) throw err;
-  moveJson(filenames, dummyJSON, scrapeArchive);
-});
+// moveback
+// fs.readdir(scrapeArchive, function (err, filenames) {
+//   if (err) throw err;
+//   moveJson(filenames, scrapeArchive, dummyJSON);
+// });
 
 // // move things back 
 // moveJson(scrapeArchive, json);
