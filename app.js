@@ -44,5 +44,8 @@ http.createServer(app).listen(app.get('port'), function(){
 // Require BatchOP
 // require("./batchOp.js");
 
+// require serverInit.js
+// require('./serverInit.js');
+
 // require cronBatchInsert.js to test
-require("./cronBatchInsert.js");
+// require("./cronBatchInsert.js");

@@ -179,6 +179,18 @@ var checkEmptyDB = function (fromSource, toDest) {
 };
 
 /***
+ *      ______                                 _         
+ *     |  ____|                               | |        
+ *     | |__    __  __  _ __     ___    _ __  | |_   ___ 
+ *     |  __|   \ \/ / | '_ \   / _ \  | '__| | __| / __|
+ *     | |____   >  <  | |_) | | (_) | | |    | |_  \__ \
+ *     |______| /_/\_\ | .__/   \___/  |_|     \__| |___/
+ *                     | |                               
+ *                     |_|                               
+ */
+
+
+/***
  *      ______                                _          
  *     |  ____|                              | |         
  *     | |__    __  __   ___    ___   _   _  | |_    ___ 
@@ -189,5 +201,6 @@ var checkEmptyDB = function (fromSource, toDest) {
  *                                                       
  */
 
-checkEmptyDB();
-startCron();
+
+// checkEmptyDB();
+// startCron();

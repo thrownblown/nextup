@@ -13,6 +13,7 @@ PLAN:
 */
 var docFetch = require("./docFetch.js");
 var rest = require('restler');
+var Promise = require('bluebird');
 
 var batchURL = "http://localhost:7474/db/data/batch";
 var cypherURL = "http://localhost:7474/db/data/cypher";
@@ -32,6 +33,7 @@ var getNodeNum = function (nodeAddress) {
   return nodeAddress.match(regexp)[0];
 };
 
+// extracts words and their properties from the result of a cypher "Match (w:Word)" query and inserts them into the global object masterDict
 var addToDict = function (result, master) {
   var len = result.data.length;
   console.log("len: ", len);
@@ -53,6 +55,7 @@ var addToDict = function (result, master) {
     }
   }
   consoleStart(master, "Master Dict words");
+  return master;
 };
 
 // assumption: only create a master dictionary during big batch imports
@@ -421,33 +424,63 @@ var insertBatchRec = function (result, response, documentList, num) {
 // after the last insertion
 
 // clear data base first for testing purposes
-rest.postJson(cypherURL, clearQuery()).on("complete", function (result, response) {
-  // query database to create master dictionary
-  rest.postJson(cypherURL, masterDictQuery())
-    .on("complete", function (result, response) {
-      // create a dictionary first after querying
-      addToDict(result, masterDict);
+// rest.postJson(cypherURL, clearQuery()).on("complete", function (result, response) {
+//   // query database to create master dictionary
+//   rest.postJson(cypherURL, masterDictQuery())
+//     .on("complete", function (result, response) {
+//       // create a dictionary first after querying
+//       addToDict(result, masterDict);
 
-      insertBatchRec(result, response, docList, 0);
+//       insertBatchRec(result, response, docList, 0);
 
+//     });
+// });
+
+// clears the database and returns a bluebird promise
+var clearNeo4jDBAsync = function (url, option) {
+  url = url || cypherURL;
+  option = option || clearQuery();
+  return new Promise(function (resolve, reject) {
+    rest.postJson(url, option).on("complete", function (result, response){
+      if (result instanceof Error) {
+        reject(result);
+      } else {
+        resolve(result);
+      }
+    })
+  });
+};
+
+// queries the Neo4j db for all word nodes and adds them to the global master dict object
+var populateMasterDictAsync = function (result, url, option) {
+  url = url || cypherURL;
+  option = option || masterDictQuery();
+  return new Promise(function (resolve, reject) {
+    rest.postJson(url, option).on("complete", function (result, response){
+      if (result instanceof Error) {
+        reject(result);
+      } else {
+        resolve(addToDict(result, masterDict));
+      }
     });
-});
+  });
+}
+
+/***
+ *      ______                                 _         
+ *     |  ____|                               | |        
+ *     | |__    __  __  _ __     ___    _ __  | |_   ___ 
+ *     |  __|   \ \/ / | '_ \   / _ \  | '__| | __| / __|
+ *     | |____   >  <  | |_) | | (_) | | |    | |_  \__ \
+ *     |______| /_/\_\ | .__/   \___/  |_|     \__| |___/
+ *                     | |                               
+ *                     |_|                               
+ */
 
 
+module.exports.clearNeo4jDBAsync = clearNeo4jDBAsync;
+module.exports.populateMasterDictAsync = populateMasterDictAsync;
 
-
-// replacement for recursive batch insert function
-      // // batch operation to insert document and its relationship with words
-      // rest.postJson(batchURL, batchInsert(dummyDoc1).query)
-      //   .on("complete", function (result, response) {
-      //     consoleStart(result, "RESULT after first batch insert");
-      //     updateDict(wordsToAdd, result);
-
-      //     rest.postJson(batchURL, batchInsert(dummyDoc2).query)
-      //       .on("complete", function (result, response){
-      //         consoleStart(result, "RESULT after SECOND batch insert");
-      //       });
-      //   });
 
 // REFERENCE
 /*
