@@ -34,30 +34,23 @@ var Site = mongoose.model('Site', siteSchema);
 
 var apiKey = '9695482fe1197a0ba40b18c71190d2669b7d903a';
 
-module.exports = readSiteByUrl = function(url){
-  var requrl =
-    'https://readability.com/api/content/v1/parser?url='
-    + url + '&token=' + apiKey;
-  console.log(requrl);
-  request(requrl, function (error, response, html) {
-    if (!error && response.statusCode === 200) {
-      var readJSON = JSON.parse(html);
-      readJSON.file = readJSON.title
-        .replace(/[^\w\s]|_/g, '')
-        .replace(/\s+/g, '')
-        .replace(/ +?/g, '')
-        .toLowerCase();
-      var site = new Site(readJSON);
-      site.save(function(err){
-        if (err) throw err;
-        console.log('saved to db ' + readJSON.file);
-      });
-
-      fs.writeFile('./json/' + readJSON.file + '.json', JSON.stringify(readJSON), function (err) {
-        if (err) throw err;
-        console.log('It\'s saved! ', readJSON.file);
-      });
-    }
+module.exports =readSiteByUrl = function(url){
+  return new Promise (function(resolve, reject) {
+    var requrl = 'https://readability.com/api/content/v1/parser?url=' + url + '&token=' + apiKey;
+    console.log(requrl);
+    request(requrl, function (error, response, html) {
+      if (!error && response.statusCode === 200) {
+        var readJSON = JSON.parse(html);
+        var site = new Site(readJSON);
+        site.save(function(err, result){
+          if (err) {
+            reject(err);
+          }
+          console.log('saved to db ' + readJSON.file);
+          resolve(readJSON);
+        });
+      }
+    });
   });
 };
 
