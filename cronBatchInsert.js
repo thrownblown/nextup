@@ -11,10 +11,10 @@
  
 TL;DR
 -----------------------
-  0. ALL functions to be executed (except global/dependencies) are at the bottom of this page
+  0. ALL functions to be executed (except global/dependencies) or exported are at the bottom of this page
 
   1. read './json' directory and create an array of those files (async)
-  2. batch insert into Neo4j the array (async)
+  2. batch insert into Neo4j the array of parsed objects (async)
   3. move inserted files to archive when batchInsert is done (assumes batchInsert is ALWAYS successful, no error catching)
 
 
@@ -60,7 +60,14 @@ var jsonDir       = path.join(_dirname, 'json');
 var scrapeArchive = path.join(_dirname, 'scrapeArchive');
 var dummyJSON     = path.join(_dirname, 'dummyJSON');
 
+var dirPaths = {
+  jsonDir: jsonDir,
+  scrapeArchive: scrapeArchive,
+  dummyJSON: dummyJSON
+};
+
 // uncomment one of the below to test 
+// in production version, change all cases of testDir to jsonDir
 var testDir = dummyJSON;
 // var testDir = jsonDir;
 
@@ -79,10 +86,10 @@ var testDir = dummyJSON;
 // this cron job checks the json folder to see if there are newly added files to be inserted into the neo4j DB.
 // jsonfiles that have been inserted into the database are archived
 var startCron = function (time) {
-  time = time || "*/5 * * * * *";
+  time = time || "*/10 * * * * *";
   return new CronJob.CronJob(time, function () {
-    console.log( "every 5 seconds execute checkDir");
-    checkDir();
+    console.log( "every 10 seconds execute checkDir");
+    checkDir(testDir);
   }, null, true, "America/Los_Angeles");
 };
 
@@ -91,12 +98,18 @@ var checkDir = function (dir) {
   dir = dir || testDir
   readJsonDir(dir)
     .then(function (fileList) {
-      consoleStart(fileList, "checkDir list of files to pass to insertDocs");
-      batch.insertDocs(fileList, function () {
-        moveJson(testDir, scrapeArchive, filesToMove);
-      });
+      console.log('what is fileList: ', fileList);
+      if (fileList.length > 1 || fileList[0] !== undefined) {
+        var filenames = toFilenameList(fileList);
+        consoleStart(filenames, "files to archive after cron batch insert");
+        // should return a list of filenames that were inserted
+        batch.insertBatchRec("result", "response", fileList, 0);
+        return moveJson(testDir, scrapeArchive, filenames);
+      }
     })
-    .caught(consoleStart);
+    .catch(function (err) {
+      consoleStart(err, "readJsonDir errored in Cron");
+    });
 };
 
 /***
@@ -112,6 +125,7 @@ var checkDir = function (dir) {
 
 // reads a directory and returns an array of parsed JSON objects
 var readJsonDir = function (fromSource) {
+  fromSource = fromSource || testDir;
   consoleStart(fromSource, "read json dir");
   return fs.readdirAsync(fromSource).map(function (filename, index) {
     console.log("map filename: ", filename);
@@ -121,20 +135,33 @@ var readJsonDir = function (fromSource) {
       var fileSource = path.join(fromSource, filename);
       filesToMove.push(filename);
       return fs.readFileAsync(fileSource, "utf8").then(JSON.parse);
+    } else {
+      return undefined;
     }
   });
 };
 
 // moves specific files from one directory to another directory
 // if directory is empty, nothing happens. if dest directory has the same file name, it is overwritten
+// returns an array of filenames that were moved
 var moveJson = function (fromSource, toDest, filenameList) {
-  // if source or destination is not specified, throw an error
-  if (!fromSource || !toDest) { throw "path not specified"; }
-  
-  // if the filenameList parameter is undefined, then by default move ALL files from Source to Destination
+  // if source or destination is not specified, by default move everything from archive BACK to testDir
+  fromSource = fromSource || scrapeArchive;
+  toDest = toDest || testDir;
+
+  // if di
   if (filenameList === undefined) {
+    var filenameListPromise = fs.readdirAsync(fromSource);
+  } else {
+    console.log( 'is filenameList executed' );
+    filenameListPromise = Promise.resolve(filenameList);
+  }
+
+  // if the filenameList parameter is undefined, then by default move ALL files from Source to Destination
+  // if (filenameList === undefined) {
     // reads a directory, then uses map to apply the mv function to each of the files
-    fs.readdirAsync(fromSource).map(function(filename){
+    // return fs.readdirAsync(fromSource).map(function(filename){
+    return filenameListPromise.map(function(filename){
 
       // specifies which source file to move
       var fileSource = path.join(fromSource, filename);
@@ -145,22 +172,47 @@ var moveJson = function (fromSource, toDest, filenameList) {
       // move each file asynchronously from source to destination
       // clobber property should overwrite destination files
       // mkdirp property should create directory if not exist
-      mv(fileSource, fileDest, {clobber: true, mkdirp: true}, function (err){ 
-        consoleStart(err, 'file move error')
+      return new Promise(function (resolve, reject) {
+        mv(fileSource, fileDest, {clobber: true, mkdirp: true}, function (err){
+          if (err) {
+            consoleStart(err, 'file move error');
+            reject(err);
+          } else {
+            resolve(filename);
+          }
+        });
       });
     });
-  } else {
-    // else move files from source to destination
-    for (var i = 0; i < filenameList.length; i++) {
-      var fileSource = path.join(fromSource, filenameList[i]);
-      var fileDest = path.join(toDest, filenameList[i]);
-      mv(fileSource, fileDest, {clobber: true}, function (err){ 
-        consoleStart(err, 'file move error')
-      });
+
+  // filenameList is defined
+  // } else {
+  //   // else move files from source to destination
+  //   for (var i = 0; i < filenameList.length; i++) {
+  //     var fileSource = path.join(fromSource, filenameList[i]);
+  //     var fileDest = path.join(toDest, filenameList[i]);
+  //     mv(fileSource, fileDest, {clobber: true}, function (err){ 
+  //       consoleStart(err, 'file move error')
+  //     });
+  //   }
+  //   // clear files to move
+  //   return filenameList;
+  //   filesToMove = [];
+  // }
+};
+
+// converts json object files BACK to list of file names
+var toFilenameList = function (documentList) {
+  consoleStart(documentList, "files to be converted");
+  var result = [];
+  for (var i = 0; i < documentList.length; i++) {
+    var item = documentList[i];
+    // prevent reading hidden system files
+    if (item !== undefined) {
+      result.push(item.fileName + '.json');
     }
-    // clear files to move
-    filesToMove = [];
   }
+  console.log('converted result', result);
+  return result;
 };
 
 // query the neo4j database, if DB is empty (db error), then all archived files should be moved to the json folder to be re-inserted
@@ -169,12 +221,17 @@ var moveJson = function (fromSource, toDest, filenameList) {
 var checkEmptyDB = function (fromSource, toDest) {
   fromSource = fromSource || scrapeArchive;
   toDest = toDest || testDir;
-  rest.postJson(cypherURL, {query:"MATCH (n) RETURN n"})
-    .on("complete", function (result, response) {
-      if (result.data.length === 0) {
-        console.log("\n DB is empty, re-enter all archived files \n");
-        moveJson(fromSource, toDest);
-      } 
+
+  return new Promise (function (resolve, reject) {
+    rest.postJson(cypherURL, {query:"MATCH (n) RETURN n"})
+      .on("complete", function (result, response) {
+        if (result instanceof Error) {
+          throw 'err checking if neo4j is empty';
+        } else {
+          console.log("\n DB empty, re-insert all archived files \n");
+          resolve(result.data.length === 0);
+        }
+      });
   });
 };
 
@@ -189,6 +246,12 @@ var checkEmptyDB = function (fromSource, toDest) {
  *                     |_|                               
  */
 
+module.exports.readJsonDir = readJsonDir;
+module.exports.moveJson = moveJson;
+module.exports.dirPaths = dirPaths;
+module.exports.toFilenameList = toFilenameList;
+module.exports.checkEmptyDB = checkEmptyDB;
+module.exports.startCron = startCron;
 
 /***
  *      ______                                _          
