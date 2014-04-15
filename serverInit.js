@@ -22,41 +22,36 @@ or mongoDB as alternative
 
 */
 
-var consoleStart = require('./helpers/commonlyUsed.js').consoleStart;
-var clearNeo4jDBAsync = require('./batchOp.js').clearNeo4jDBAsync;
+var consoleStart            = require('./helpers/commonlyUsed.js').consoleStart;
+var clearNeo4jDBAsync       = require('./batchOp.js').clearNeo4jDBAsync;
 var populateMasterDictAsync = require('./batchOp.js').populateMasterDictAsync;
-var insertBatchRec = require('./batchOp.js').insertBatchRec;
+var insertBatchRec          = require('./batchOp.js').insertBatchRec;
 
-var moveJson    = require('./cronBatchInsert.js').moveJson;
-var readJsonDir = require('./cronBatchInsert.js').readJsonDir;
-var dirPaths    = require('./cronBatchInsert.js').dirPaths;
-var toFilenameList = require('./cronBatchInsert.js').toFilenameList;
-var checkEmptyDB = require('./cronBatchInsert.js').checkEmptyDB;
-var startCron = require('./cronBatchInsert.js').startCron;
+var moveJson                = require('./cronBatchInsert.js').moveJson;
+var readJsonDir             = require('./cronBatchInsert.js').readJsonDir;
+var dirPaths                = require('./cronBatchInsert.js').dirPaths;
+var toFilenameList          = require('./cronBatchInsert.js').toFilenameList;
+var checkEmptyDB            = require('./cronBatchInsert.js').checkEmptyDB;
+var startCron               = require('./cronBatchInsert.js').startCron;
 
-// dummy data
-var dummyData = require('./batchOp.js').dummyList;
-
-var data = {};
-data.query = 'CREATE (w: Word {word: "testPromise", connections: 1 }) RETURN w;';
 var cypherURL = "http://localhost:7474/db/data/cypher";
 
-// // move files from archive to original directory, remove in production
-// moveJson()
-// .then(function (movedFiles) {
-//   consoleStart(movedFiles,'files moved from archive to testDir');
-// })
-// // clear database for testing purposes, remove in production
-// .then(function () {
-//   return clearNeo4jDBAsync();
-// })
-// // REAL functions begin here, everything before is for testing and can be cleared
-// // assuming FRESH db
-// .then(function () {
-//   return checkEmptyDB();
-// })
+// move files from archive to original directory, remove in production
+moveJson()
+.then(function (movedFiles) {
+  consoleStart(movedFiles,'files moved from archive to testDir');
+})
+// clear database for testing purposes, remove in production
+.then(function () {
+  return clearNeo4jDBAsync();
+})
+// REAL functions begin here, everything before is for testing and can be cleared
+// assuming FRESH db
+.then(function () {
+  return checkEmptyDB();
+})
 
-checkEmptyDB()
+// checkEmptyDB()
 .then(function (isNeo4jEmpty) {
   consoleStart(isNeo4jEmpty, "isNeo4jEmpty ??")
   // if the database is empty, then move archive files back to json folder to be inserted

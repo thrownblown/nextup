@@ -149,7 +149,7 @@ var moveJson = function (fromSource, toDest, filenameList) {
   fromSource = fromSource || scrapeArchive;
   toDest = toDest || testDir;
 
-  // if di
+  // if the filenameList parameter is undefined, then by default move ALL files from Source to Destination
   if (filenameList === undefined) {
     var filenameListPromise = fs.readdirAsync(fromSource);
   } else {
@@ -157,47 +157,32 @@ var moveJson = function (fromSource, toDest, filenameList) {
     filenameListPromise = Promise.resolve(filenameList);
   }
 
-  // if the filenameList parameter is undefined, then by default move ALL files from Source to Destination
-  // if (filenameList === undefined) {
-    // reads a directory, then uses map to apply the mv function to each of the files
-    // return fs.readdirAsync(fromSource).map(function(filename){
-    return filenameListPromise.map(function(filename){
+  // reads a directory, then uses map to apply the mv function to each of the files
+  // return fs.readdirAsync(fromSource).map(function(filename){
+  return filenameListPromise.map(function(filename){
 
-      // specifies which source file to move
-      var fileSource = path.join(fromSource, filename);
+    // specifies which source file to move
+    var fileSource = path.join(fromSource, filename);
 
-      // makes the the destination filename is the same as the source
-      var fileDest = path.join(toDest, filename);
+    // makes the the destination filename is the same as the source
+    var fileDest = path.join(toDest, filename);
 
-      // move each file asynchronously from source to destination
-      // clobber property should overwrite destination files
-      // mkdirp property should create directory if not exist
-      return new Promise(function (resolve, reject) {
-        mv(fileSource, fileDest, {clobber: true, mkdirp: true}, function (err){
-          if (err) {
-            consoleStart(err, 'file move error');
-            reject(err);
-          } else {
-            resolve(filename);
-          }
-        });
+    // move each file asynchronously from source to destination
+    // clobber property should overwrite destination files
+    // mkdirp property should create directory if not exist
+    return new Promise(function (resolve, reject) {
+      mv(fileSource, fileDest, {clobber: true, mkdirp: true}, function (err){
+        if (err) {
+          consoleStart(err, 'file move error');
+          reject(err);
+        } else {
+          resolve(filename);
+        }
       });
-    });
+    }); // end of mv promise
+  });   // end of map promise
 
-  // filenameList is defined
-  // } else {
-  //   // else move files from source to destination
-  //   for (var i = 0; i < filenameList.length; i++) {
-  //     var fileSource = path.join(fromSource, filenameList[i]);
-  //     var fileDest = path.join(toDest, filenameList[i]);
-  //     mv(fileSource, fileDest, {clobber: true}, function (err){ 
-  //       consoleStart(err, 'file move error')
-  //     });
-  //   }
-  //   // clear files to move
-  //   return filenameList;
-  //   filesToMove = [];
-  // }
+  filesToMove = [];
 };
 
 // converts json object files BACK to list of file names
