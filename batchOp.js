@@ -132,7 +132,7 @@ var rd20 = {"rank":27,"title":"Most StartSSL certs will stay compromised","url":
 
 // var docList = [dummyDoc1];
 // var docList = [dummyDoc1, dummyDoc2, dummyDoc3];
-var docList = [rd1,rd2,rd3,rd4,rd5,rd6,rd7,rd8,rd9,rd10,rd11,rd12,rd13,rd14,rd15,rd16,rd17,rd18,rd19,rd20];
+// var docList = [rd1,rd2,rd3,rd4,rd5,rd6,rd7,rd8,rd9,rd10,rd11,rd12,rd13,rd14,rd15,rd16,rd17,rd18,rd19,rd20];
 
 // creates the query to insert a doc
 // returns an obj with the query and its request id {query: query, reqID: reqID}
