@@ -404,7 +404,7 @@ var cosineSimilarityInsertion = function(url) {
       .on("complete", function(result, response) {
         console.log("Cosine Similarity Query Complete", result);
         // Test Cosine Similarity fetcher
-        // docFetch.cosSimFetch(url, "Dropbox for Business", 0.0, 10);
+        docFetch.cosSimFetch(url, "https://www.dropboxatwork.com/2014/04/new-dropbox-business/", 0.0, 10);
       });
     });
   });
