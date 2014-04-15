@@ -13,6 +13,7 @@ PLAN:
 */
 var docFetch = require("./docFetch.js");
 var rest = require('restler');
+var Promise = require('bluebird');
 
 var batchURL = "http://localhost:7474/db/data/batch";
 var cypherURL = "http://localhost:7474/db/data/cypher";
@@ -32,6 +33,7 @@ var getNodeNum = function (nodeAddress) {
   return nodeAddress.match(regexp)[0];
 };
 
+// extracts words and their properties from the result of a cypher "Match (w:Word)" query and inserts them into the global object masterDict
 var addToDict = function (result, master) {
   var len = result.data.length;
   console.log("len: ", len);
@@ -50,14 +52,18 @@ var addToDict = function (result, master) {
       master[word].nodeNum = nodeNum;
       master[word].word = word;
       master[word].connections = connections;
+
+      // increase dictionary size
+      master._size++;
     }
   }
   consoleStart(master, "Master Dict words");
+  return master;
 };
 
 // assumption: only create a master dictionary during big batch imports
 // master dictionary has word and it's node location in the neo4j database
-var masterDict = {};
+var masterDict = {_size: 0};
 var wordsToAdd = [];
 var wordsToUpdate = [];
 
@@ -131,7 +137,8 @@ var rd19 = {"rank":6,"title":"Mono and Roslyn","url":"http://tirania.org/blog/ar
 var rd20 = {"rank":27,"title":"Most StartSSL certs will stay compromised","url":"https://bugzilla.mozilla.org/show_bug.cgi?id=994033","points":5,"username":"aroch","comments":2,"fileName":"moststartsslcertswillstaycompromised","wordcount":19570,"wordunique":786,"wordtable":{"bugzillamozillanew":1,"account":6,"log":14,"function":33,"var":129,"loginlink":15,"bzdefaulthidden":87,"orrememberx":7,"forgot":7,"passwordloginxhome":1,"new":54,"browse":10,"search":10,"help":10,"reports":10,"product":36,"passwordloginxnew":1,"accountnew":0,"in":229,"rememberx":0,"passwordloginx":0,"password":0,"loginx":0,"loginxhome":0,"dashboardhomehome":1,"dashboard":2,"dashboardlast":0,"commentbug":2,"most":20,"startssl":131,"certs":87,"will":64,"stay":49,"compromised":59,"statusnewwhiteboard":2,"bugday20140407":6,"allimportance":6,"normal":7,"event":8,"yahooutilevent":8,"dom":8,"yahooutildom":8,"display":17,"description":17,"if":143,"user":34,"requests":26,"it":132,"proddesc":26,"the":750,"administration":8,"of":216,"x3ca":8,"projectx3cax3e":8,"and":410,"its":8,"servers":8,"website":8,"content":8,"bugs":8,"belong":8,"wwwmozillaorg":8,"fieldcontainer":17,"togglecontainer":17,"id":61,"toggleproddesc":8,"togglelink":17,"toggleproddesclink":8,"href":17,"javascriptvoid0":17,"info":53,"desccontainer":17,"proddesccontainer":8,"click":17,"hide":17,"else":25,"show":18,"component":15,"compdesc":26,"for":337,"certificate":180,"authorities":16,"to":771,"file":16,"asking":8,"their":158,"certificates":302,"be":146,"included":8,"default":8,"store":8,"togglecompdesc":8,"togglecompdesclink":8,"compdesccontainer":8,"with":159,"votes":8,"votetarget":5,"milestone":7,"assigned":6,"tokathleen":7,"wilsonqa":6,"urldepends":5,"onblocksshow":5,"dependency":7,"tree":7,"pdt":30,"by":63,"kaspar":7,"jmodified20140409":6,"historycc":6,"list11":7,"usersshoweddynigg":7,"fbraun":9,"josh":52,"kurt":9,"mathieusim":9,"me":33,"michael":9,"mozilla":17,"mriq91":34,"nik":9,"cceditarea":8,"cceditareashowhide":8,"see":31,"alsocrash":6,"signatureqa":6,"whiteboardproject":6,"an":24,"attachment":7,"proposed":7,"patch":7,"testcase":7,"etcfunction":4,"summoncommentbox":6,"commentbox":6,"none":6,"summon":7,"comment":106,"boxvar":2,"tbplcommentids":3,"j20140409":26,"pdtuser":6,"agent":7,"mozilla50":7,"macintosh":7,"intel":7,"mac":7,"os":7,"x":7,"rv280":7,"gecko20100101":7,"firefox280":7,"betareleasebuild":7,"reproduceopenssl":7,"cve20140160":7,"heartbleed":40,"heardbleed":7,"every":95,"which":115,"was":31,"used":15,"vulnerable":23,"version":7,"openssl":24,"i":185,"read":7,"somewhere":7,"web":7,"should":79,"handled":7,"as":57,"is":310,"have":90,"replaced":7,"ones":23,"keys":32,"old":42,"revokedactual":7,"resultsyou":7,"can":55,"get":23,"usd":15,"but":72,"there":71,"are":120,"people":99,"who":15,"cant":31,"or":127,"dont":48,"like":23,"pay":114,"a":304,"cert":7,"these":31,"now":51,"forced":7,"revoke":55,"free":125,"unfortunately":7,"startcom":123,"charges":15,"revocationi":7,"believe":7,"that":245,"this":141,"result":7,"huge":7,"amount":7,"considered":7,"compsomised":7,"still":7,"active":7,"consequence":7,"you":46,"trust":48,"signed":23,"before":14,"resultssolution":7,"affected":23,"we":32,"seesolution":7,"removed":7,"from":140,"truststorecomment":5,"pdtverifying":6,"though":7,"solution":7,"would":68,"on":71,"tech":7,"evangelism":7,"contact":8,"find":7,"out":24,"what":32,"plan":7,"iscomment":7,"pdtas":6,"seen":7,"here":67,"scroll":7,"up":7,"has":65,"made":7,"stance":7,"clear":15,"they":180,"require":7,"everyone":7,"revocationcomment":6,"pdtyou":6,"fire":7,"department":7,"taxes":7,"not":202,"when":16,"call":7,"themevery":7,"company":15,"choose":7,"business":15,"model":15,"idea":15,"context":7,"makes":15,"very":15,"trustworthy":32,"want":23,"my":85,"truststore":31,"because":23,"know":24,"secure":7,"keep":15,"them":141,"simply":7,"carelesscomment":7,"s20140409":8,"pdtto":6,"add":25,"some":33,"information":16,"mix":16,"lets":24,"generalize":16,"without":40,"having":15,"complete":16,"knowledge":16,"ev":16,"replace":24,"per":16,"page":11,"technically":16,"class":41,"personal":16,"org":16,"also":16,"required":7,"revocation":124,"fee":91,"unconfirmed":16,"rumours":16,"seem":24,"tell":16,"paying":32,"customers":41,"might":16,"those":32,"fees":24,"time":16,"hasnt":16,"put":16,"statement":7,"yet":49,"set":16,"record":16,"straightthis":7,"leaves":33,"mostly":16,"discussion":16,"how":16,"things":16,"continue":16,"at":73,"least":32,"debacle":16,"again":16,"shown":7,"where":24,"weak":16,"spots":16,"ca":42,"system":16,"arecomment":6,"pdtin":34,"reply":75,"mathieu":7,"s":7,"havinggt":8,"addgt":8,"gt":287,"pagegt":8,"requiredgt":8,"feegt":8,"notgt":8,"statementgt":8,"straightgt":8,"letsgt":8,"showngt":8,"areas":7,"customer":7,"organizational":7,"been":15,"refused":7,"right":7,"due":32,"issue":15,"cannot":7,"until":7,"additional":7,"top":11,"already":7,"had":23,"validation":7,"procedureall":7,"other":100,"ive":7,"deal":7,"revoked":42,"policy":8,"section":7,"only":23,"subscribers":7,"explicitly":7,"requesting":7,"listed":7,"carrying":7,"means":15,"certificateskeys":7,"carry":7,"chargethese":7,"misleading":7,"actions":7,"throw":7,"into":7,"doubt":7,"leaving":7,"potentially":24,"wild":7,"could":23,"lead":7,"excessive":7,"damage":7,"corporate":7,"datawould":7,"your":7,"data":23,"knowing":7,"stolen":7,"maliciously":7,"little":7,"no":80,"visibilitycomment":7,"triplett20140409":17,"pdtevery":6,"provider":87,"requires":43,"payment":43,"one":100,"offering":43,"goes":43,"long":7,"way":43,"spreading":43,"tls":51,"https":60,"more":119,"broadly":43,"complaint":43,"theyre":43,"daring":43,"charge":51,"maintain":43,"list":44,"removing":15,"over":59,"do":83,"harm":43,"than":43,"good":51,"securitycomment":10,"triplett":42,"longgt":35,"thatgt":35,"removinggt":35,"securitythe":7,"problem":33,"charging":68,"revocations":24,"someone":16,"lost":16,"key":67,"got":51,"hacked":16,"okay":16,"fine":16,"own":24,"faultthe":7,"thanks":16,"leaked":59,"private":24,"circumstances":16,"outside":16,"control":16,"anyone":15,"thus":16,"insecure":16,"sitesnow":7,"single":34,"encouraging":34,"eh":51,"chance":34,"so":66,"low":34,"ill":59,"just":32,"thinking":34,"behaviourthis":7,"actively":16,"compromising":16,"security":57,"ssl":41,"consumers":16,"checks":16,"vendor":16,"sites":16,"visit":16,"theres":7,"lock":24,"icon":24,"says":16,"therefor":16,"site":7,"users":32,"expose":16,"themselves":16,"potential":16,"risks":16,"while":24,"browser":15,"ensures":16,"communicating":16,"securely":16,"websitecomment":8,"ernster20140409":8,"securityspreading":7,"all":47,"place":7,"then":15,"forcing":7,"certainly":7,"doing":7,"any":31,"reason":23,"why":7,"startsslcom":7,"cacertorg":7,"nor":7,"anything":15,"denied":7,"same":7,"statusgt":7,"theirgt":8,"faultgt":8,"leakedgt":8,"anyonegt":8,"sitesgt":8,"aregt":26,"justgt":26,"behaviourgt":17,"igt":17,"theresgt":8,"sitegt":8,"browsergt":8,"websiteno":7,"either":15,"replacement":7,"nothing":7,"vulnerability":7,"general":7,"principle":7,"regardless":7,"certificatecomment":7,"glaser20140409":17,"pdti":6,"going":7,"bug":27,"ask":15,"whether":7,"refusal":7,"rekey":39,"even":15,"permitting":7,"face":7,"enough":24,"distrusting":7,"beat":7,"considering":15,"meetingonly":7,"day":15,"work":7,"busy":7,"yesterday":7,"havethe":7,"use":15,"godaddy":7,"cacert":7,"permit":7,"rekeying":7,"doesntim":7,"bit":7,"scratch":7,"annoyed":7,"since":7,"mirbsd":7,"hobby":7,"project":8,"money":23,"teckids":7,"soontobe":7,"taxexempt":7,"nonprofit":7,"society":7,"public":23,"utility":7,"linux":7,"need":39,"despite":7,"handling":7,"credit":7,"card":7,"session":7,"inacceptable":7,"both":7,"websites":7,"serve":7,"cvs":7,"git":7,"repository":7,"http":7,"httpsbut":7,"does":7,"seriously":7,"must":15,"debian":15,"others":7,"distrust":7,"issued":7,"think":32,"opensslgnutls":7,"etcsslcertificates":7,"cacertificatestxt":7,"similarare":7,"cas":24,"refuse":7,"suggest":7,"track":7,"wellany":7,"words":7,"about":31,"asides":7,"twitter":7,"response":7,"above":7,"contacted":7,"directly":7,"mail":7,"tonight":7,"remove":7,"installations":7,"days":7,"positive":7,"answer":7,"nb":7,"did":15,"request":15,"told":7,"asked":7,"nevertheless":7,"consider":7,"duty":7,"requester":7,"succeed":7,"getting":7,"donecomment":7,"pdttracked":6,"tracked":8,"red":7,"hatfedora":7,"gentoo":7,"afaictcomment":6,"pdtwhen":6,"feeling":15,"care":23,"sign":15,"mind":7,"providing":15,"generation":7,"websiteit":7,"nice":7,"service":23,"helping":7,"spread":7,"looks":7,"leak":7,"truststorea":7,"doesnt":7,"whatever":7,"past":7,"second":7,"angrywe":7,"guideline":7,"complicated":7,"expensive":7,"certification":7,"itselfcomment":7,"micay20140409":8,"pdtthe":6,"tier":7,"based":15,"profiting":7,"breaches":7,"lures":7,"making":7,"during":7,"crisis":7,"attempt":7,"extort":7,"many":7,"using":7,"wont":7,"longer":7,"unexpected":7,"feecomment":7,"securitygt":16,"behaviourand":7,"encourages":16,"really":16,"allcomment":8,"agt":8,"allbut":7,"conveyed":7,"end":7,"flatout":7,"knows":7,"encryption":7,"provided":7,"make":14,"decisions":7,"enter":7,"certain":7,"details":7,"factthey":7,"tricked":7,"fact":7,"assures":7,"communication":7,"secured":7,"properlynote":1,"changes":6,"bugformat":0,"printing":2,"xml":1,"clone":2,"initclonebugmenu":1,"mozillaorg":1,"last":1,"buglast":0,"compromisedlast":0,"commentlbug":0,"compromisedsummary":0,"summarysmost":0,"status":0,"newnewwhiteboard":0,"whiteboard":0,"allplatform":0,"platformall":0,"votevar":0,"vote":0,"votesvotetarget":0,"target":1,"milestonetarget":0,"milestoneassigned":0,"wilsonassigned":0,"wilsonkathleen":1,"contactqa":0,"qa":0,"urlurlurlurldepends":0,"ondepends":1,"graphshow":0,"graph":0,"jreported":0,"jkaspar":7,"historymodified":0,"history":0,"cc":1,"showeddynigg":0,"tglasereddynigg":0,"tglaser":0,"hideeditablefield":0,"alsosee":1,"signaturecrash":1,"whiteboardqa":1,"flagsproject":0,"flags":0,"boxattachmentsadd":2,"etcadd":0,"etc":0,"attachmentfunction":0,"boxfunction":0,"box":0,"boxsummon":0,"properlyvar":0,"pdtdescription":0,"descriptionkaspar":0,"pdtcomment":13,"verifying":0,"smathieu":1,"triplettjosh":3,"ernsterpascal":1,"glaserthorsten":3,"micaydaniel":1,"behaviourcomment":0,"properlycomment":1,"bugnote":3,"notelog":0,"format":1,"printingformat":0,"xmlxml":0,"bugclone":0,"home":0,"dashboardhome":2,"privacy":0,"policyprivacy":0}};
 
 // var docList = [dummyDoc1];
-// var docList = [dummyDoc1, dummyDoc2, dummyDoc3];
+var docList = [dummyDoc1, dummyDoc2, dummyDoc3];
+module.exports.dummyList = docList;
 // var docList = [rd1,rd2,rd3,rd4,rd5,rd6,rd7,rd8,rd9,rd10,rd11,rd12,rd13,rd14,rd15,rd16,rd17,rd18,rd19,rd20];
 
 // creates the query to insert a doc
@@ -353,8 +360,12 @@ var updateDict = function (newWords, result, num) {
     masterDict[word].nodeNum = nodeNum;
     masterDict[word].loc = loc;
     masterDict[word].connections = connections;
+
+    // update the size of the dictionary
+    masterDict._size++;
   }
-  consoleStart(masterDict, "Newly added words " + num);
+  consoleStart(wordsToAdd, "newly added words: " + num);
+  consoleStart(masterDict, "current master Dict " + num);
   // empty the words to be added
   wordsToAdd = [];
   return masterDict;
@@ -401,15 +412,24 @@ var cosineSimilarityInsertion = function(url) {
 
 // recursive function that inserts docs only when the previous document has been inserted
 var insertBatchRec = function (result, response, documentList, num) {
+  // num is for debugging purposes, shows which queries goes with which results
+  num = num || 0;
   consoleStart(result, "Result after " + num + " insert");
+
+  // after words have been successfully inserted into the db, the dictionary has to be udpated
   updateDict(wordsToAdd, result, num);
+
+  // pre-existing dictionary words will have their connections updated to reflect what is stored in the db
   updateConnections(wordsToUpdate, result, num);
 
-  if (documentList.length === 0) {
-    cosineSimilarityInsertion(cypherURL);
+  // the second OR argument executes if the document list contains hidden system files that should not have been read
+  if (documentList.length === 0 || documentList[documentList.length-1] === undefined) {
+    // cosineSimilarityInsertion(cypherURL);
     return; 
   }
 
+  // note, instead of popping off an item and and mutating original, maybe just count?
+  // double note, since the directory is read alphabetical order (i think), be careful of hidden files
   var doc = documentList.pop();
 
   rest.postJson(batchURL, batchInsert(doc, 0, num+1).query)
@@ -421,33 +441,64 @@ var insertBatchRec = function (result, response, documentList, num) {
 // after the last insertion
 
 // clear data base first for testing purposes
-rest.postJson(cypherURL, clearQuery()).on("complete", function (result, response) {
-  // query database to create master dictionary
-  rest.postJson(cypherURL, masterDictQuery())
-    .on("complete", function (result, response) {
-      // create a dictionary first after querying
-      addToDict(result, masterDict);
+// rest.postJson(cypherURL, clearQuery()).on("complete", function (result, response) {
+//   // query database to create master dictionary
+//   rest.postJson(cypherURL, masterDictQuery())
+//     .on("complete", function (result, response) {
+//       // create a dictionary first after querying
+//       addToDict(result, masterDict);
 
-      insertBatchRec(result, response, docList, 0);
+//       insertBatchRec(result, response, docList, 0);
 
+//     });
+// });
+
+// clears the database and returns a bluebird promise
+var clearNeo4jDBAsync = function (url, option) {
+  url = url || cypherURL;
+  option = option || clearQuery();
+  return new Promise(function (resolve, reject) {
+    rest.postJson(url, option).on("complete", function (result, response){
+      if (result instanceof Error) {
+        reject(result);
+      } else {
+        resolve(result);
+      }
+    })
+  });
+};
+
+// queries the Neo4j db for all word nodes and adds them to the global master dict object
+var populateMasterDictAsync = function (result, url, option) {
+  url = url || cypherURL;
+  option = option || masterDictQuery();
+  return new Promise(function (resolve, reject) {
+    rest.postJson(url, option).on("complete", function (result, response){
+      if (result instanceof Error) {
+        reject(result);
+      } else {
+        resolve(addToDict(result, masterDict));
+      }
     });
-});
+  });
+}
+
+/***
+ *      ______                                 _         
+ *     |  ____|                               | |        
+ *     | |__    __  __  _ __     ___    _ __  | |_   ___ 
+ *     |  __|   \ \/ / | '_ \   / _ \  | '__| | __| / __|
+ *     | |____   >  <  | |_) | | (_) | | |    | |_  \__ \
+ *     |______| /_/\_\ | .__/   \___/  |_|     \__| |___/
+ *                     | |                               
+ *                     |_|                               
+ */
 
 
+module.exports.clearNeo4jDBAsync = clearNeo4jDBAsync;
+module.exports.populateMasterDictAsync = populateMasterDictAsync;
+module.exports.insertBatchRec = insertBatchRec;
 
-
-// replacement for recursive batch insert function
-      // // batch operation to insert document and its relationship with words
-      // rest.postJson(batchURL, batchInsert(dummyDoc1).query)
-      //   .on("complete", function (result, response) {
-      //     consoleStart(result, "RESULT after first batch insert");
-      //     updateDict(wordsToAdd, result);
-
-      //     rest.postJson(batchURL, batchInsert(dummyDoc2).query)
-      //       .on("complete", function (result, response){
-      //         consoleStart(result, "RESULT after SECOND batch insert");
-      //       });
-      //   });
 
 // REFERENCE
 /*
