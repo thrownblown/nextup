@@ -264,68 +264,70 @@ var batchInsert = function (doc, requestID, num) {
   requestID++
 
   // iterate through words and create queries in order
-  for (var word in doc.wordtable) {
-    // if word is not in master dictionary, insert word node first THEN create relationship
-    var tfValue = (doc.wordtable[word] / (doc.wordcount+1)).toFixed(10);
-    if (masterDict[word] === undefined) {
-      var wordCMD = insertWordBatch(word, requestID);
-      query.push(wordCMD.cmd);
-      requestID++;
+  for (var word in doc.wordtable) { 
+    if (word !== "" || doc.wordtable[word] !== undefined) {
+      // if word is not in master dictionary, insert word node first THEN create relationship
+      var tfValue = (doc.wordtable[word] / (doc.wordcount+1)).toFixed(10);
+      if (masterDict[word] === undefined) {
+        var wordCMD = insertWordBatch(word, requestID);
+        query.push(wordCMD.cmd);
+        requestID++;
 
-      // add a label to the word
-      var labelCMD = addLabelBatch("Word", wordCMD.reqID, requestID);
-      query.push(labelCMD.cmd);
-      requestID++
+        // add a label to the word
+        var labelCMD = addLabelBatch("Word", wordCMD.reqID, requestID);
+        query.push(labelCMD.cmd);
+        requestID++
 
-      // create relationship
-      var relCMD = createRelationshipBatch(docCMD.reqID, wordCMD.reqID, requestID, false, tfValue);
-      query.push(relCMD.cmd);
-      requestID++;
+        // create relationship
+        var relCMD = createRelationshipBatch(docCMD.reqID, wordCMD.reqID, requestID, false, tfValue);
+        query.push(relCMD.cmd);
+        requestID++;
 
-      // update relationship index
-      var relIndexCMD = updateRelationshipIndexBatch(relCMD.reqID, requestID, tfValue);
-      query.push(relIndexCMD.cmd);
-      requestID++;
+        // update relationship index
+        var relIndexCMD = updateRelationshipIndexBatch(relCMD.reqID, requestID, tfValue);
+        query.push(relIndexCMD.cmd);
+        requestID++;
 
-      // update word node connection/relationship number
-      var updateConCMD = updatePropertyBatch(1, wordCMD.reqID, requestID, "connections", false);
-      query.push(updateConCMD.cmd);
-      requestID++;
+        // update word node connection/relationship number
+        var updateConCMD = updatePropertyBatch(1, wordCMD.reqID, requestID, "connections", false);
+        query.push(updateConCMD.cmd);
+        requestID++;
 
-      // get 'connection' property from node
-      var getConCMD = getPropertyBatch(wordCMD.reqID, requestID, "connections", false);
-      query.push(getConCMD.cmd);
-      requestID++;
+        // get 'connection' property from node
+        var getConCMD = getPropertyBatch(wordCMD.reqID, requestID, "connections", false);
+        query.push(getConCMD.cmd);
+        requestID++;
 
-      // add word to list of words to be added to master dict after batch op. complete
-      wordsToAdd.push({word: word, reqID: wordCMD.reqID, connectionID: getConCMD.reqID});
+        // add word to list of words to be added to master dict after batch op. complete
+        wordsToAdd.push({word: word, reqID: wordCMD.reqID, connectionID: getConCMD.reqID});
 
-    // else word exists in the master dict, so create relationships from that
-    } else {
-      // find the word's node from masterDict and create a relationship
-      var wordNodeNum = masterDict[word].nodeNum;
-      var wordConNum  = masterDict[word].connections;
-      var relCMD = createRelationshipBatch(docCMD.reqID, wordNodeNum, requestID, true, tfValue);
-      query.push(relCMD.cmd);
-      requestID++;
+      // else word exists in the master dict, so create relationships from that
+      } else {
+        // find the word's node from masterDict and create a relationship
+        var wordNodeNum = masterDict[word].nodeNum;
+        var wordConNum  = masterDict[word].connections;
+        var relCMD = createRelationshipBatch(docCMD.reqID, wordNodeNum, requestID, true, tfValue);
+        query.push(relCMD.cmd);
+        requestID++;
 
-      // update word node connection/relationship number
-      var updateConCMD = updatePropertyBatch(wordConNum+1, wordNodeNum, requestID, "connections", true);
-      query.push(updateConCMD.cmd);
-      requestID++;
+        // update word node connection/relationship number
+        var updateConCMD = updatePropertyBatch(wordConNum+1, wordNodeNum, requestID, "connections", true);
+        query.push(updateConCMD.cmd);
+        requestID++;
 
-      // get 'connection' property from node
-      var getConCMD = getPropertyBatch(wordNodeNum, requestID, "connections", true);
-      query.push(getConCMD.cmd);
-      requestID++;
+        // get 'connection' property from node
+        var getConCMD = getPropertyBatch(wordNodeNum, requestID, "connections", true);
+        query.push(getConCMD.cmd);
+        requestID++;
 
-      // update connections in the master Dict
-      wordsToUpdate.push({word: word, connectionID: getConCMD.reqID});
+        // update connections in the master Dict
+        wordsToUpdate.push({word: word, connectionID: getConCMD.reqID});
 
-      // update the relationship index
-      var relIndexCMD = updateRelationshipIndexBatch(relCMD.reqID, requestID, tfValue);
-      query.push(relIndexCMD.cmd);
-      requestID++;
+        // update the relationship index
+        var relIndexCMD = updateRelationshipIndexBatch(relCMD.reqID, requestID, tfValue);
+        query.push(relIndexCMD.cmd);
+        requestID++;
+      }
     }
 
   }
@@ -384,7 +386,7 @@ var updateConnections = function (wToUpdate, results, num) {
 };
 // Creates tfidf properties, creates vectors and cosine similarity
 var cosineSimilarityInsertion = function(url) {
-  var tfidfQuery = { query: "MATCH (n:Document) WITH count(DISTINCT n) AS totalDocs MATCH (d:Document)-[r:HAS]->(w:Word) WITH r.tf AS tf,w.connections AS totalRel,log((totalDocs)/(w.connections)) AS idf,d,r,w SET r.TFIDF = toFloat(tf) * toFloat(idf)"};
+  var tfidfQuery = { query: "MATCH (n:Document) WITH count(DISTINCT n) AS totalDocs MATCH (d:Document)-[r:HAS]->(w:Word) WITH r.tf AS tf,w.connections AS totalRel,1+(log((totalDocs)/(w.connections))) AS idf,d,r,w SET r.TFIDF = toFloat(tf) * toFloat(idf)"};
   var vectorQuery = { query: "MATCH (d:Document)-[r:HAS]->(w:Word) WITH SQRT(REDUCE(dot = 0, a IN COLLECT(r.TFIDF) | dot + a*a)) AS vector, d SET d.vector = vector"};
   var cosSimQuery = { query: "MATCH (d1:Document)-[x:HAS]->(w:Word)<-[y:HAS]-(d2:Document) WITH SUM(x.TFIDF * y.TFIDF) AS xyDotProduct, d1.vector AS xMagnitude, d2.vector AS yMagnitude, d1, d2 CREATE UNIQUE (d1)-[s:SIMILARITY]-(d2) SET s.similarity = xyDotProduct / (xMagnitude * yMagnitude)"};
   rest.postJson(url, tfidfQuery)
@@ -397,7 +399,7 @@ var cosineSimilarityInsertion = function(url) {
       .on("complete", function(result, response) {
         console.log("Cosine Similarity Query Complete", result);
         // Test Cosine Similarity fetcher
-        docFetch.cosSimFetch(url, "https://www.dropboxatwork.com/2014/04/new-dropbox-business/", 0.0, 10);
+        // docFetch.cosSimFetch(url, "https://www.dropboxatwork.com/2014/04/new-dropbox-business/", 0.0, 10);
       });
     });
   });
@@ -417,7 +419,7 @@ var insertBatchRec = function (result, response, documentList, num) {
 
   // the second OR argument executes if the document list contains hidden system files that should not have been read
   if (documentList.length === 0 || documentList[documentList.length-1] === undefined) {
-    // cosineSimilarityInsertion(cypherURL);
+    cosineSimilarityInsertion(cypherURL);
     return; 
   }
 

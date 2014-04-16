@@ -68,8 +68,8 @@ var dirPaths = {
 
 // uncomment one of the below to test 
 // in production version, change all cases of testDir to jsonDir
-var testDir = dummyJSON;
-// var testDir = jsonDir;
+// var testDir = dummyJSON;
+var testDir = jsonDir;
 
 
 /***
