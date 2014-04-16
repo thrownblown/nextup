@@ -18,15 +18,8 @@ var Promise = require('bluebird');
 var batchURL = "http://localhost:7474/db/data/batch";
 var cypherURL = "http://localhost:7474/db/data/cypher";
 
+var consoleStart = require('./helpers/commonlyUsed.js').consoleStart;
 // helper functions
-var consoleStart = function (data, title) {
-  var title = title || "";
-  console.log("\n\n");
-  console.log("********** BEGIN " + title + " **********" + "\n\n");
-  console.log(data);
-  console.log("\n\n********** END " + title + " **********");
-  console.log("\n\n");
-};
 
 var getNodeNum = function (nodeAddress) {
   var regexp = /[0-9]*$/g;
