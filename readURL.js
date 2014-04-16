@@ -1,16 +1,16 @@
 #!/usr/bin/env node
-
-var fs = require('fs');
 var request = require('request');
 var cheerio = require('cheerio');
 var sanitizer = require('sanitizer');
-// var read = require('node-readability');
 var mongoose = require('mongoose');
 var Promise = require('bluebird');
+// var fs = require('fs');
 
-var Schema = mongoose.Schema;
-var db = mongoose.connection;
-mongoose.connect('mongodb://localhost/db');
+// var Schema = mongoose.Schema;
+// var db = mongoose.connection;
+// mongoose.connect('mongodb://localhost/db');
+
+// schema is too big but thats everything we get from readability api
 
 var siteSchema = new Schema({
   content: String,
@@ -33,9 +33,12 @@ var siteSchema = new Schema({
 
 var Site = mongoose.model('Site', siteSchema);
 module.exports.Site = Site;
+// var mem = {
+//   docs: {}
+// };
+// var count = 0;
 
-
-var apiKey = '9695482fe1197a0ba40b18c71190d2669b7d903a';
+var apiKey = process.env.API || '9695482fe1197a0ba40b18c71190d2669b7d903a';
 
 exports.readSiteByUrl = function(url){
   return new Promise (function(resolve, reject) {
@@ -56,33 +59,28 @@ exports.readSiteByUrl = function(url){
     });
   });
 };
-
-// request('https://news.ycombinator.com', function (error, response, html) {
-//   if (!error && response.statusCode === 200) {
-//     var $ = cheerio.load(html);
-//     $('span.comhead').each(function(i, element){
-//       var a = $(this).prev();
-//       var url = a.attr('href');
-//       readSiteByUrl(url);
-//     });
-//   }
-// });
-
-var stripHTML = function (html) {
-  var clean = sanitizer.sanitize(html, function (str) {
-    return str;
-  });
-  clean = clean
-    .replace(/<(?:.|\n)*?>/gm, '')
-    .replace(/(?:(?:\r\n|\r|\n)\s*){2,}/ig, "\n");
-  return clean.trim();
-};
-
-var replaceAllBackSlash = function (targetStr){
-  var index=targetStr.indexOf("\\");
-  while(index >= 0){
-    targetStr=targetStr.replace("\\","");
-    index=targetStr.indexOf("\\");
-  }
-  return targetStr;
-};
+      // mem.docs[count++] = {
+      //   title: readJSON.title,
+      //   content: readJSON.content,
+      //   //random set of related docs, to be replaced by n3o4j suggestions
+      //   related: range(Math.floor(Math.random() * count))
+      // };
+      // fs.writeFile('./json/' + readJSON.file + '.json', JSON.stringify(readJSON), function (err) {
+      //   if (err) throw err;
+      //   console.log('It\'s saved! ', readJSON.file);
+      // });
+      // dummy data structure
+      // { docs: {
+      //   1: {
+      //     title: '',
+      //     content: '',
+      //     related: [2,3,4]
+      //     }
+      //   }
+      // }
+      // this file write below needs to get promised so that it only happens 
+      // once after all the docs have come back
+      // fs.writeFile('./json/mem.json', JSON.stringify(mem), function (err) {
+      //   if (err) throw err;
+      //   console.log('mem\'s saved! ');
+      // });

@@ -3,140 +3,93 @@
 var fs = require('fs');
 var request = require('request');
 var cheerio = require('cheerio');
-var sanitizer = require('sanitizer');
-var read = require('node-readability');
+// var sanitizer = require('sanitizer');
+var utils = require('./utils')
+var FeedParser = require('feedparser')
 
-// var Promise = require('promise');
-// var Q = require('q');
+  // if url not in list
+//
+// module.exports.bigRSS = function (){
+//   request('https://news.ycombinator.com/bigrss', function (error, response, html) {
+//     if (!error && response.statusCode === 200) {
+//       var $ = cheerio.load(html);
+//       $('item').each(function(i, element){
+//         console.log(i, element.children.data)
+//         var url, title;
+//         if (element.next.data){
+//           url = element.next.data;
+//           title = i;
+//         }
+//         // url = url.replace(/(&#x2F;)/g, '/');
+//         var metadata = {
+//           title: title,
+//           url: url,
+//         };
+//         scrapeSite(url, title, metadata);
+//       });
+//     }
+//   });
+// }
+module.exports.bigRSS = function (){
+  var FeedParser = require('feedparser')
+    , request = require('request');
+
+  var req = request('https://news.ycombinator.com/bigrss')
+    , feedparser = new FeedParser();
+
+  req.on('error', function (error) {
+    // handle any request errors
+  });
+  req.on('response', function (res) {
+    var stream = this;
+
+    if (res.statusCode != 200) return this.emit('error', new Error('Bad status code'));
+
+    stream.pipe(feedparser);
+  });
 
 
-// https://news.ycombinator.com/
+  feedparser.on('error', function(error) {
+    // always handle errors
+  });
+  feedparser.on('readable', function() {
+    // This is where the action is!
+    var stream = this
+      , meta = this.meta // **NOTE** the "meta" is always available in the context of the feedparser instance
+      , item;
 
-request('https://news.ycombinator.com', function (error, response, html) {
-  if (!error && response.statusCode === 200) {
-    var $ = cheerio.load(html);
-    $('span.comhead').each(function(i, element){
-      metadata = {};
-      var a = $(this).prev();
-      var rank = a.parent().parent().text();
-      var title = a.text();
-
-      var url = a.attr('href');
-      var subtext = a.parent().parent().next().children('.subtext').children();
-      var points = $(subtext).eq(0).text();
-      var username = $(subtext).eq(1).text();
-      var comments = $(subtext).eq(2).text();
-      var metadata = {
-        rank: parseInt(rank),
-        title: title,
-        url: url,
-        points: parseInt(points),
-        username: username,
-        comments: parseInt(comments),
-        fileName: title.replace(/[^\w\s]|_/g, "").replace(/\s+/g, "").replace(/ +?/g, '').toLowerCase()
-      };
-      scrapeSite(url, title, metadata);
-    });
-  }
-});
-
-
-
+    while (item = stream.read()) {
+      item.file = item.title
+        .replace(/[^\w\s]|_/g, '')
+        .replace(/\s+/g, '')
+        .replace(/ +?/g, '')
+        .toLowerCase();
+        scrapeSite(item.link, item.title, item);
+      }
+  });
+};
 var scrapeSite = function(url, title, metadata, error, response, html){
-  var obj = {
-    wordtable: {},
-    wordcount: 0,
-    wordunique: 0
-  };
+
+  var obj;
   request(url, function (error, response, html) {
     if (!error && response.statusCode == 200) {
       var $ = cheerio.load(html);
       var bodyText = $('body *').text();
-      bodyText = stripHTML(bodyText);
-      bodyText = bodyText.replace(/(\r\n|\n|\r|\t)/gm,"");
-      bodyText = bodyText.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
-      var words = bodyText.split(' ');
-      obj.wordcount = 0;
-      for (var i = 0; i < words.length; i++){
-        if (words[i].length<20&&!parseInt(words[i])){
-          words[i] = words[i].toLowerCase();
-          if (words[i] in obj.wordtable){
-            obj.wordcount++;
-            obj.wordtable[words[i]]++;
-          } else {
-            obj.wordcount++;
-            obj.wordtable[words[i]] = 0;
-          }
-        }
-      }
-      for(var e in obj.wordtable) {
-        if(obj.wordtable.hasOwnProperty(e)){
-          obj.wordunique++;
-        }
-      }
+      bodyText = utils.stripHTML(bodyText);
+      bodyText = utils.replaceAllBackSlash(bodyText);
+      obj = utils.makeJSON(bodyText);
+      //should use obj extend....
       metadata.wordunique = obj.wordunique;
       metadata.wordcount = obj.wordcount;
       metadata.wordtable = obj.wordtable;
-      fs.writeFile('./json/' + metadata.fileName + '.json', JSON.stringify(metadata), function (err) {
-        if (err) throw err;
-        console.log('It\'s saved! ', title);
-      });
+
+      if (metadata.wordcount > 20 || metadata.wordtable !== {"":0}){
+        fs.writeFile('./json/' + metadata.file + '.json', JSON.stringify(metadata), function (err) {
+          if (err) throw err;
+          console.log('It\'s saved! ', title);
+        });
+      }
     }
   });
   return metadata;
-};
-
-module.exports = function(url){
-  var returnObj = {
-    wordtable: {},
-    wordcount: 0,
-    wordunique: 0
-  };
-  request(url, function (error, response, html) {
-    if (!error && response.statusCode == 200) {
-      var $ = cheerio.load(html);
-      var bodyText = $('body *').text();
-      bodyText = stripHTML(bodyText);
-      bodyText = bodyText.replace(/(\r\n|\n|\r|\t)/gm,"");
-      bodyText = bodyText.replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
-      var words = bodyText.split(' ');
-      returnObj.wordcount = 0;
-      for (var i = 0; i < words.length; i++){
-        if (words[i].length<20&&!parseInt(words[i])){
-          words[i] = words[i].toLowerCase();
-          if (words[i] in returnObj.wordtable){
-            returnObj.wordcount++;
-            returnObj.wordtable[words[i]]++;
-          } else {
-            returnObj.wordcount++;
-            returnObj.wordtable[words[i]] = 0;
-          }
-        }
-      }
-      for(var e in returnObj.wordtable) {
-        if(returnObj.wordtable.hasOwnProperty(e)){
-          returnObj.wordunique++;
-        }
-      }
-    }
-    return returnObj;
-  });
-};
-
-var stripHTML = function (html) {
-  var clean = sanitizer.sanitize(html, function (str) {
-    return str;
-  });
-  clean = clean.replace(/<(?:.|\n)*?>/gm, "");
-  clean = clean.replace(/(?:(?:\r\n|\r|\n)\s*){2,}/ig, "\n");
-  return clean.trim();
-};
-
-var replaceAllBackSlash = function (targetStr){
-  var index=targetStr.indexOf("\\");
-  while(index >= 0){
-      targetStr=targetStr.replace("\\","");
-      index=targetStr.indexOf("\\");
-  }
-  return targetStr;
 };
