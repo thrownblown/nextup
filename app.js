@@ -8,6 +8,10 @@ var routes = require('./routes');
 var user = require('./routes/user');
 var http = require('http');
 var path = require('path');
+var mongoose = require('mongoose');
+
+var readURL = require('./readURL');
+var docFetch = require('./docFetch');
 
 // require neo4j
 var neo4j = require("node-neo4j");
@@ -28,6 +32,8 @@ app.use(express.urlencoded());
 app.use(express.methodOverride());
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
+var cypherURL = "http://localhost:7474/db/data/cypher";
+
 
 // development only
 if ('development' == app.get('env')) {
@@ -37,51 +43,24 @@ if ('development' == app.get('env')) {
 app.get('/', routes.index);
 app.get('/users', user.list);
 
-app.get('/article/:url', function(req, res) {
-  var url = req.params.article;
-  var response = [];
-  // checks if url is in mongo
-  mongoCheck(url, function(yes) {
-    if(yes) {
-      // if its in mongo, query mongo for doc and send doc as well as send 5 similar documents
-      mongoQuery(url, function(readability) {
-        response.push(readability);
-        cosSimFetch(cypherURL, url, 0.0, 5, function() {
-          res.send(response);
-        });
-        res.send(response);
-      });
-    } else {
-      // if not in mongo, query readability
-      readabilityQuery(article, function(response) {
-        // save the readability response to mongo and send the response
-        saveToMongo(response, function(err, response) {
-          if (err) {
-            console.log(err);
-          }
-          res.send(response);
-        });
-      });
-    }
-  });
-});
+app.get('/article/*', function(req, res) {
+  var fullUrl = req.url;
 
-app.get('/article/:url', function(req, res) {
-  var url = req.params.article;
-  var mongoURL = { url: req.params.article };
+  var articleUrl = fullUrl.slice(fullUrl.indexOf("http"));
+  var mongoURL = { url: articleUrl };
   var response = [];
 
-  mongoQuery({ url: req.params.article })
+  readURL.Site.find(mongoURL)
   .exec(function(err, result) {
-    if (err) {
-      // need to promisify readSiteByUrl
-      readSiteByUrl(url)
+    if (result.length === 0) {
+      console.log("Not in mongo");
+      readURL.readSiteByUrl(articleUrl)
       .then(function(readJSON) {
         response.push(readJSON);
         return response;
       })
       .then(function() {
-        return cosSimFetch(cypherURL, url, 0.0, 10);
+        return docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10);
       })
       .then(function(topCosSim) {
         return response.push(topCosSim);
@@ -90,8 +69,9 @@ app.get('/article/:url', function(req, res) {
         return res.send(response);
       });
     } else {
+      console.log("Found in mongo, result from mongo is ", result);
       response.push(result);
-      cosSimFetch(cypherURL, url, 0.0, 10)
+      docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10)
       .then(function(topCosSim) {
         response.push(topCosSim);
         return res.send(response);
