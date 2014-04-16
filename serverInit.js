@@ -69,7 +69,8 @@ moveJson()
 // *note* good place for cron job?
 // read json directory for files to insert
 .then(function (results) {
-  return readJsonDir(dirPaths.dummyJSON);
+  // return readJsonDir(dirPaths.dummyJSON);
+  return readJsonDir(dirPaths.jsonDir);
 })
 // batch insert json files
 .then(function (docList) {
@@ -77,7 +78,8 @@ moveJson()
   consoleStart(filenames, "files to move to archive after batch insert");
   // should return a list of filenames that were inserted
   insertBatchRec("result", "response", docList, 0);
-  return moveJson(dirPaths.dummyJSON, dirPaths.scrapeArchive, filenames);
+  // return moveJson(dirPaths.dummyJSON, dirPaths.scrapeArchive, filenames);
+  return moveJson(dirPaths.jsonDir, dirPaths.scrapeArchive, filenames);
 })
 .then(function (movedFiles) {
   consoleStart(movedFiles, 'files moved after batch insert');

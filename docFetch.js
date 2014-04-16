@@ -3,6 +3,7 @@ var Promise = require('bluebird');
 
 exports.cosSimFetch = function(cypherURL, docURL, cosSim, limit) {
   return new Promise(function(resolve, reject) {
+    console.log("Looking for ", docURL, " inside neo4j!");
     cosSim = cosSim || 0.0;
     limit = limit || 5;
     var resultArray = [];
@@ -21,6 +22,7 @@ exports.cosSimFetch = function(cypherURL, docURL, cosSim, limit) {
       resolve(resultArray);
     })
     .on("failure", function(result) {
+      console.log("FAILUREEEEEE NOOOO ", result);
       reject(result);
     });
   });
