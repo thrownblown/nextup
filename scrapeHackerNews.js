@@ -30,7 +30,7 @@ var FeedParser = require('feedparser');
 //   });
 // }
 module.exports.bigRSS = function (){
-  var archive = fs.readdirSync('./json/scrapeArchive/');
+  var archive = fs.readdirSync('./scrapeArchive/');
   var FeedParser = require('feedparser')
     , request = require('request');
 
