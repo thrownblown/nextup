@@ -6,9 +6,9 @@ var mongoose = require('mongoose');
 var Promise = require('bluebird');
 // var fs = require('fs');
 
-// var Schema = mongoose.Schema;
-// var db = mongoose.connection;
-// mongoose.connect('mongodb://localhost/db');
+var Schema = mongoose.Schema;
+var db = mongoose.connection;
+mongoose.connect('mongodb://localhost/db');
 
 // schema is too big but thats everything we get from readability api
 

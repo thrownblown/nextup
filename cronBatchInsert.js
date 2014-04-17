@@ -127,6 +127,7 @@ var checkDir = function (dir) {
 var readJsonDir = function (fromSource) {
   fromSource = fromSource || testDir;
   consoleStart(fromSource, "read json dir");
+  var count = 0;
   return fs.readdirAsync(fromSource).map(function (filename, index) {
     console.log("map filename: ", filename);
 
@@ -134,7 +135,11 @@ var readJsonDir = function (fromSource) {
     if (filename[0] !== '.') {
       var fileSource = path.join(fromSource, filename);
       filesToMove.push(filename);
-      return fs.readFileAsync(fileSource, "utf8").then(JSON.parse);
+      return fs.readFileAsync(fileSource, "utf8")
+        .then( function (result) {
+          // console.log(filename, 'is about to be parsed, count: ', count, "/187" );
+          return JSON.parse(result);
+        });
     } else {
       return undefined;
     }
@@ -193,7 +198,7 @@ var toFilenameList = function (documentList) {
     var item = documentList[i];
     // prevent reading hidden system files
     if (item !== undefined) {
-      result.push(item.fileName + '.json');
+      result.push(item.file + '.json');
     }
   }
   console.log('converted result', result);

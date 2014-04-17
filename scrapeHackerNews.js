@@ -61,8 +61,10 @@ module.exports.bigRSS = function (){
     while (item = stream.read()) {
       item.file = item.title
         .replace(/[^\w\s]|_/g, '')
+        .replace(/\W+/g, '')
         .replace(/\s+/g, '')
         .replace(/ +?/g, '')
+        .replace()
         .toLowerCase();
         scrapeSite(item.link, item.title, item);
       }
