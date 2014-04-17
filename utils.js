@@ -8,13 +8,15 @@ module.exports.stripHTML = strip = function (html) {
   });
   clean = clean.replace(/<(?:.|\n)*?>/gm, " ");
   clean = clean.replace(/(?:(?:\r\n|\r|\n|\t)\s*){2,}/ig, " ");
-  clean = clean.replace("\\n", " ");
+  clean = clean.replace("\n", " ");
   clean = clean
-    .replace(/[\.,-\/#!$%\^&\*;:{}=\-_\?\[\]|∀→+▼¬≡⊆⊇⊔γ”“‵³β✴×λ²↔∧₀∈⊈πςπ⊥ℕ⊤≤∷`₁′’ℓ‵∉~()]/g," ");
+    .replace(/[\.,-\/#!$%\^&\*;:{}=\-_\?\[\]|∀→+▼►¬≡⊆⊇⊔γ”“‵³β✴×λ²↔∧₀∈⊈πςπ⊥ℕ⊤≤∷`₁′’ℓ‵∉~()]/g," ");
   clean = clean.replace(/\s{2,}/g," ");
   clean = clean.replace(/"/g," ");
+  clean=clean.replace("\t", " ");
+  clean=clean.replace("'", " ");
 
-  return clean;//.trim();
+  return clean;
 };
 
 module.exports.replaceAllBackSlash = noback = function (targetStr){
@@ -49,24 +51,27 @@ module.exports.makeJSON = function(str){
   var words = str.split(' ');
   returnObj.wordcount = 0;
   for (var i = 0; i < words.length; i++){
+    //filter out common words, long words that somehow got concatenated
+    // into gibberish and words that consist of only numbers
 
-    if (!commonWords[words[i]] || (words[i].length<20 && !parseInt(words[i]))){
+    if (!commonWords[words[i]] || (words[i].length<20 && !parseInt(words[i]))) {
+      
       words[i] = words[i].toLowerCase();
-      // console.log(words[i]);
       words[i] = noback(words[i]);
       words[i] = noNew(words[i]);
+
+      //check for any new blank spaces designating new words, split them off and push back into our words array
       var wordarr = words[i].split(' ');
       if (wordarr.length > 1){
         for (var j = 1; j<wordarr.length; j++){
           words.push(wordarr[j]);
-          words[i] = wordarr[0];
         } 
+        words[i] = wordarr[0];
       }
-
+      //final filter for words with non-standard characters
       //using the word as a hash-key, its value is the number of 
       //occurrences of the key-word in each document
-      var reg = /[^a-zA-Z0-9]/g;
-      if ((words[i] in returnObj.wordtable) || reg.test(words[i])){
+      if (words[i] in returnObj.wordtable) {
         returnObj.wordcount++;
         returnObj.wordtable[words[i]]++;
       } else {
@@ -82,6 +87,7 @@ module.exports.makeJSON = function(str){
   }
 return returnObj;
 }
+
 var commonWords = {
   the:null,
   be:null,
