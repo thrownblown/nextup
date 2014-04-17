@@ -12,6 +12,7 @@ var mongoose = require('mongoose');
 
 var readURL = require('./readURL');
 var docFetch = require('./docFetch');
+var cypherURL = process.env.CYPHER || "http://localhost:7474/db/data/cypher";
 
 var app = express();
 
