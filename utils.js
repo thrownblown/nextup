@@ -9,7 +9,8 @@ module.exports.stripHTML = strip = function (html) {
   clean = clean.replace(/<(?:.|\n)*?>/gm, " ");
   clean = clean.replace(/(?:(?:\r\n|\r|\n|\t)\s*){2,}/ig, " ");
   clean = clean.replace("\\n", " ");
-  clean = clean.replace(/[\.,-\/#!$%\^&\*;:{}=\-_\[\]|`~()]/g," ");
+  clean = clean
+    .replace(/[\.,-\/#!$%\^&\*;:{}=\-_\?\[\]|∀→+▼¬≡⊆⊇⊔γ”“‵³β✴×λ²↔∧₀∈⊈πςπ⊥ℕ⊤≤∷`₁′’ℓ‵∉~()]/g," ");
   clean = clean.replace(/\s{2,}/g," ");
   clean = clean.replace(/"/g," ");
 
@@ -64,7 +65,8 @@ module.exports.makeJSON = function(str){
 
       //using the word as a hash-key, its value is the number of 
       //occurrences of the key-word in each document
-      if (words[i] in returnObj.wordtable){
+      var reg = /[^a-zA-Z0-9]/g;
+      if ((words[i] in returnObj.wordtable) || reg.test(words[i])){
         returnObj.wordcount++;
         returnObj.wordtable[words[i]]++;
       } else {
