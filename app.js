@@ -14,9 +14,8 @@ var readURL = require('./readURL');
 var docFetch = require('./docFetch');
 
 // require neo4j
-var neo4j = require("node-neo4j");
 var neo4jURL = "http://127.0.0.1:7474";
-db = new neo4j(neo4jURL);
+var cypherURL = "http://localhost:7474/db/data/cypher";
 
 var app = express();
 
@@ -32,7 +31,6 @@ app.use(express.urlencoded());
 app.use(express.methodOverride());
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
-var cypherURL = "http://localhost:7474/db/data/cypher";
 
 
 // development only
@@ -43,42 +41,42 @@ if ('development' == app.get('env')) {
 app.get('/', routes.index);
 app.get('/users', user.list);
 
-app.get('/article/*', function(req, res) {
-  var fullUrl = req.url;
+// app.get('/article/*', function(req, res) {
+//   var fullUrl = req.url;
 
-  var articleUrl = fullUrl.slice(fullUrl.indexOf("http"));
-  var mongoURL = { url: articleUrl };
-  var response = [];
+//   var articleUrl = fullUrl.slice(fullUrl.indexOf("http"));
+//   var mongoURL = { url: articleUrl };
+//   var response = [];
 
-  readURL.Site.find(mongoURL)
-  .exec(function(err, result) {
-    if (result.length === 0) {
-      console.log("Not in mongo");
-      readURL.readSiteByUrl(articleUrl)
-      .then(function(readJSON) {
-        response.push(readJSON);
-        return response;
-      })
-      .then(function() {
-        return docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10);
-      })
-      .then(function(topCosSim) {
-        return response.push(topCosSim);
-      })
-      .then(function() {
-        return res.send(response);
-      });
-    } else {
-      console.log("Found in mongo, result from mongo is ", result);
-      response.push(result);
-      docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10)
-      .then(function(topCosSim) {
-        response.push(topCosSim);
-        return res.send(response);
-      });
-    }
-  });
-});
+//   readURL.Site.find(mongoURL)
+//   .exec(function(err, result) {
+//     if (result.length === 0) {
+//       console.log("Not in mongo");
+//       readURL.readSiteByUrl(articleUrl)
+//       .then(function(readJSON) {
+//         response.push(readJSON);
+//         return response;
+//       })
+//       .then(function() {
+//         return docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10);
+//       })
+//       .then(function(topCosSim) {
+//         return response.push(topCosSim);
+//       })
+//       .then(function() {
+//         return res.send(response);
+//       });
+//     } else {
+//       console.log("Found in mongo, result from mongo is ", result);
+//       response.push(result);
+//       docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10)
+//       .then(function(topCosSim) {
+//         response.push(topCosSim);
+//         return res.send(response);
+//       });
+//     }
+//   });
+// });
 
 
 

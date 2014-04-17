@@ -68,8 +68,8 @@ var dirPaths = {
 
 // uncomment one of the below to test 
 // in production version, change all cases of testDir to jsonDir
-// var testDir = dummyJSON;
-var testDir = jsonDir;
+var testDir = dummyJSON;
+// var testDir = jsonDir;
 
 
 /***
@@ -95,7 +95,7 @@ var startCron = function (time) {
 
 // checks the JSON directory by default for any files, inserts them using batchOperations, then moves those JSON files to the archive
 var checkDir = function (dir) {
-  dir = dir || testDir
+  dir = dir || testDir;
   readJsonDir(dir)
     .then(function (fileList) {
       console.log('what is fileList: ', fileList);
@@ -123,21 +123,93 @@ var checkDir = function (dir) {
  *                         |_|                  
  */
 
-// reads a directory and returns an array of parsed JSON objects
-var readJsonDir = function (fromSource) {
-  fromSource = fromSource || testDir;
-  consoleStart(fromSource, "read json dir");
-  return fs.readdirAsync(fromSource).map(function (filename, index) {
-    console.log("map filename: ", filename);
+// takes a str and returns 
+var filterString = function (filename, extension) {
+  var ext = new RegExp( extension + '$');
+  if (typeof filename === 'string') {
+    return filename.match(ext);
+  } else {
+    throw 'err filterString wrong string input';
+  }
+};
 
-    // if statment is to ignore hidden files
-    if (filename[0] !== '.') {
-      var fileSource = path.join(fromSource, filename);
-      filesToMove.push(filename);
-      return fs.readFileAsync(fileSource, "utf8").then(JSON.parse);
-    } else {
-      return undefined;
+// returns a promise of array of filenames from a directory that is prefiltered using either
+// - a filter function 
+// - an array of filter expressions (could be file extensions OR regex if third param is true)
+var readdirFilterPromise = function (fromSource, theFilter, isRegex) {
+  if (!fromSource) {throw 'readdirFilter source is not specified';}
+
+  // // future TODO, check input
+  // // if the theFilter is defined, but not string, function, or an array, it's the wrong format
+
+  // // future TODO, multiples ways to filter
+  // now that the input has been checked, read the directory and use ext, regexp, or filter functions
+  return fs.readdirAsync(fromSource)
+    .then(function (result) {
+      var results = [];
+      // filter is a string of .ext name, NOT regex
+      if (typeof theFilter === 'string' && !isRegex) {
+        for (var i = 0; i < result.length; i++) {
+          var filename = result[i];
+          if (filterString(filename, theFilter)) {
+            results.push(filename);
+          }
+        }
+      }
+      return Promise.resolve(results);
     }
+  );
+
+};
+
+// returns an array of parsed file objects (could get VERY large)
+var parseRecPromise = function (fromSource, fullFilelist, limit, startIndex, parsedList) {
+  // check input
+  if (!fullFilelist) { throw "parseRecPromise has no filelist input"; }
+
+  // setup variables
+  fromSource = fromSource || testDir;
+  startIndex = startIndex || 0;
+  parsedList = parsedList || [];
+  if (limit === undefined || typeof limit !== 'number' || limit <= 0 || limit > 255) {
+    console.log('is limit running');
+    limit = 255;
+  }
+  var end = startIndex + limit;
+
+  // check for end case
+  if (startIndex > fullFilelist.length) { return Promise.resolve(parsedList); }
+
+  // create a subarray of length <= limit
+  // var subArray = fullFilelist.then(function (fileList) {
+  //   return Promise.resolve(fileList.slice(startIndex, end));
+  // });
+
+  var subArray = fullFilelist.slice(startIndex, end);
+
+  // recursively calls this function and returns a promise
+  return Promise.map(subArray, function (filename) {
+    var fileSource = path.join(fromSource, filename);
+    filesToMove.push(filename);
+    return fs.readFileAsync(fileSource, "utf8").then(JSON.parse);
+  }).then(function (subParsedArray) {
+    consoleStart(subParsedArray, 'this should contain everything');
+    return parseRecPromise(fromSource, fullFilelist, limit, end, parsedList.concat(subParsedArray));
+  });
+
+// end of recursive func
+};
+
+// reads a directory and returns an array of parsed JSON objects
+var readJsonDir = function (fromSource, readFileLimit) {
+  fromSource = fromSource || testDir;
+
+  // filenameList returns a promisified array of filenames, can be used if chained with .then() or other bluebird methods
+  var filenameListP = readdirFilterPromise(fromSource, '.json');
+
+  // this returns a 
+  return filenameListP.then(function (allFilenames) {
+    return parseRecPromise(fromSource, allFilenames, readFileLimit);
   });
 };
 
@@ -147,29 +219,28 @@ var readJsonDir = function (fromSource) {
 var moveJson = function (fromSource, toDest, filenameList) {
   // if source or destination is not specified, by default move everything from archive BACK to testDir
   fromSource = fromSource || scrapeArchive;
-  toDest = toDest || testDir;
+  toDest     =     toDest || testDir;
 
   // if the filenameList parameter is undefined, then by default move ALL files from Source to Destination
   if (filenameList === undefined) {
-    var filenameListPromise = fs.readdirAsync(fromSource);
+    var filenameListPromise = readdirFilterPromise(fromSource, '.json');
   } else {
     console.log( 'is filenameList executed' );
     filenameListPromise = Promise.resolve(filenameList);
   }
 
   // reads a directory, then uses map to apply the mv function to each of the files
-  // return fs.readdirAsync(fromSource).map(function(filename){
   return filenameListPromise.map(function(filename){
 
     // specifies which source file to move
     var fileSource = path.join(fromSource, filename);
 
-    // makes the the destination filename is the same as the source
+    // makes the the destination filename the same as the source
     var fileDest = path.join(toDest, filename);
 
-    // move each file asynchronously from source to destination
-    // clobber property should overwrite destination files
-    // mkdirp property should create directory if not exist
+    // move each file asynchronously from source to destination;
+    // clobber property should overwrite destination files (not tested);
+    // mkdirp property should create directory if it does not exist (not tested);
     return new Promise(function (resolve, reject) {
       mv(fileSource, fileDest, {clobber: true, mkdirp: true}, function (err){
         if (err) {
@@ -179,10 +250,13 @@ var moveJson = function (fromSource, toDest, filenameList) {
           resolve(filename);
         }
       });
-    }); // end of mv promise
-  });   // end of map promise
-
-  filesToMove = [];
+    }); // end of mv promise, returns a filename (added to new array);
+  })   // end of map promise, returns an promisified array of filenames;
+  .then(function(movedFiles){
+    // filesToMove is a global variable within this scope that has to be cleared so we don't try to move non-existant files
+    filesToMove = [];
+    return Promise.resolve(movedFiles);
+  });
 };
 
 // converts json object files BACK to list of file names
