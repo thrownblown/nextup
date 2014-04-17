@@ -37,8 +37,8 @@ var startCron               = require('./cronBatchInsert.js').startCron;
 var cypherURL = "http://localhost:7474/db/data/cypher";
 
 // which dir to use
-var theDir = dirPaths.dummyJSON;
-// var theDir = dirPaths.jsonDir;
+// var theDir = dirPaths.dummyJSON;
+var theDir = dirPaths.jsonDir;
 
 // move files from archive to original directory, remove in production
 moveJson()
@@ -74,7 +74,7 @@ moveJson()
 // read json directory for files to insert
 .then(function (results) {
   // return readJsonDir(theDir);
-  return readJsonDir(theDir);
+  return readJsonDir(theDir, 100);
 })
 // batch insert json files
 .then(function (docList) {

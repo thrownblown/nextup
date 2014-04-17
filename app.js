@@ -41,54 +41,46 @@ if ('development' == app.get('env')) {
 app.get('/', routes.index);
 app.get('/users', user.list);
 
-// app.get('/article/*', function(req, res) {
-//   var fullUrl = req.url;
+app.get('/article/*', function(req, res) {
+  var fullUrl = req.url;
 
-//   var articleUrl = fullUrl.slice(fullUrl.indexOf("http"));
-//   var mongoURL = { url: articleUrl };
-//   var response = [];
+  var articleUrl = fullUrl.slice(fullUrl.indexOf("http"));
+  var mongoURL = { url: articleUrl };
+  var response = [];
 
-//   readURL.Site.find(mongoURL)
-//   .exec(function(err, result) {
-//     if (result.length === 0) {
-//       console.log("Not in mongo");
-//       readURL.readSiteByUrl(articleUrl)
-//       .then(function(readJSON) {
-//         response.push(readJSON);
-//         return response;
-//       })
-//       .then(function() {
-//         return docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10);
-//       })
-//       .then(function(topCosSim) {
-//         return response.push(topCosSim);
-//       })
-//       .then(function() {
-//         return res.send(response);
-//       });
-//     } else {
-//       console.log("Found in mongo, result from mongo is ", result);
-//       response.push(result);
-//       docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10)
-//       .then(function(topCosSim) {
-//         response.push(topCosSim);
-//         return res.send(response);
-//       });
-//     }
-//   });
-// });
-
-
+  readURL.Site.find(mongoURL)
+  .exec(function(err, result) {
+    if (result.length === 0) {
+      console.log("Not in mongo");
+      readURL.readSiteByUrl(articleUrl)
+      .then(function(readJSON) {
+        response.push(readJSON);
+        return response;
+      })
+      .then(function() {
+        return docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10);
+      })
+      .then(function(topCosSim) {
+        return response.push(topCosSim);
+      })
+      .then(function() {
+        return res.send(response);
+      });
+    } else {
+      console.log("Found in mongo, result from mongo is ", result);
+      response.push(result);
+      docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10)
+      .then(function(topCosSim) {
+        response.push(topCosSim);
+        return res.send(response);
+      });
+    }
+  });
+});
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
 });
 
-// Require BatchOP
-require("./batchOp.js");
-
 // require serverInit.js
 require('./serverInit.js');
-
-// require cronBatchInsert.js to test
-// require("./cronBatchInsert.js");

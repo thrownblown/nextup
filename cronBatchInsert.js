@@ -68,8 +68,8 @@ var dirPaths = {
 
 // uncomment one of the below to test 
 // in production version, change all cases of testDir to jsonDir
-var testDir = dummyJSON;
-// var testDir = jsonDir;
+// var testDir = dummyJSON;
+var testDir = jsonDir;
 
 
 /***
@@ -267,7 +267,7 @@ var toFilenameList = function (documentList) {
     var item = documentList[i];
     // prevent reading hidden system files
     if (item !== undefined) {
-      result.push(item.fileName + '.json');
+      result.push(item.file + '.json');
     }
   }
   console.log('converted result', result);
