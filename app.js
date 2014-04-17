@@ -13,11 +13,6 @@ var mongoose = require('mongoose');
 var readURL = require('./readURL');
 var docFetch = require('./docFetch');
 
-// require neo4j
-var neo4j = require("node-neo4j");
-var neo4jURL = "http://127.0.0.1:7474";
-db = new neo4j(neo4jURL);
-
 var app = express();
 
 
