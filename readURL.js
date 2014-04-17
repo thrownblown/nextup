@@ -4,7 +4,6 @@ var cheerio = require('cheerio');
 var sanitizer = require('sanitizer');
 var mongoose = require('mongoose');
 var Promise = require('bluebird');
-// var fs = require('fs');
 
 var Schema = mongoose.Schema;
 var db = mongoose.connection;

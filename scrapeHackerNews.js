@@ -3,9 +3,8 @@
 var fs = require('fs');
 var request = require('request');
 var cheerio = require('cheerio');
-// var sanitizer = require('sanitizer');
-var utils = require('./utils')
-var FeedParser = require('feedparser')
+var utils = require('./utils');
+var FeedParser = require('feedparser');
 
   // if url not in list
 //
