@@ -7,7 +7,8 @@ var Promise = require('bluebird');
 
 var Schema = mongoose.Schema;
 var db = mongoose.connection;
-mongoose.connect('mongodb://localhost/db');
+var mongoURL = process.env.MONGO || "mongodb://localhost/db";
+mongoose.connect(mongoURL);
 
 // schema is too big but thats everything we get from readability api
 

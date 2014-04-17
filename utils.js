@@ -86,7 +86,7 @@ module.exports.makeJSON = function(str){
     }
   }
 return returnObj;
-}
+};
 
 var commonWords = {
   the:null,
@@ -130,7 +130,6 @@ var commonWords = {
   there:null,
   their:null,
   what:null,
-  Word:null,
   so:null,
   up:null,
   out:null,
@@ -151,7 +150,6 @@ var commonWords = {
   him:null,
   know:null,
   take:null,
-  Word:null,
   people:null,
   into:null,
   year:null,
@@ -172,7 +170,6 @@ var commonWords = {
   over:null,
   think:null,
   also:null,
-  Word:null,
   back:null,
   after:null,
   use:null,
@@ -187,4 +184,4 @@ var commonWords = {
   new:null,
   want:null,
   because:null 
-}
+};

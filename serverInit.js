@@ -34,8 +34,6 @@ var toFilenameList          = require('./cronBatchInsert.js').toFilenameList;
 var checkEmptyDB            = require('./cronBatchInsert.js').checkEmptyDB;
 var startCron               = require('./cronBatchInsert.js').startCron;
 
-var cypherURL = "http://localhost:7474/db/data/cypher";
-
 // which dir to use
 // var theDir = dirPaths.dummyJSON;
 var theDir = dirPaths.jsonDir;
@@ -57,7 +55,7 @@ moveJson()
 
 // checkEmptyDB()
 .then(function (isNeo4jEmpty) {
-  consoleStart(isNeo4jEmpty, "isNeo4jEmpty ??")
+  // consoleStart(isNeo4jEmpty, "isNeo4jEmpty ??")
   // if the database is empty, then move archive files back to json folder to be inserted
   if (isNeo4jEmpty) {
     return moveJson();
