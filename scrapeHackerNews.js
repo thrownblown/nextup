@@ -30,6 +30,7 @@ var FeedParser = require('feedparser');
 //   });
 // }
 module.exports.bigRSS = function (){
+  var archive = fs.readdirSync('./json/scrapeArchive/');
   var FeedParser = require('feedparser')
     , request = require('request');
 
@@ -65,7 +66,10 @@ module.exports.bigRSS = function (){
         .replace(/ +?/g, '')
         .replace()
         .toLowerCase();
-        scrapeSite(item.link, item.title, item);
+        //if then for directory
+        if (!archive.indexOf(item.file + '.json')){
+          scrapeSite(item.link, item.title, item);
+        }
       }
   });
 };
@@ -94,3 +98,5 @@ var scrapeSite = function(url, title, metadata, error, response, html){
   });
   return metadata;
 };
+
+
