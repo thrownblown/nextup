@@ -77,7 +77,7 @@ var scrapeSite = function(url, title, metadata, error, response, html){
       var $ = cheerio.load(html);
       var bodyText = $('body *').text();
       bodyText = utils.stripHTML(bodyText);
-      bodyText = utils.replaceAllBackSlash(bodyText);
+      //bodyText = utils.replaceAllBackSlash(bodyText);
       obj = utils.makeJSON(bodyText);
       //should use obj extend....
       metadata.wordunique = obj.wordunique;
