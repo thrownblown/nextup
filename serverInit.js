@@ -73,8 +73,8 @@ moveJson()
 // *note* good place for cron job?
 // read json directory for files to insert
 .then(function (results) {
-  // return readJsonDir(theDir);
-  return readJsonDir(theDir, 100);
+  // returns a promisified array of *parsed* json document objects;
+  return readJsonDir(theDir);
 })
 // batch insert json files
 .then(function (docList) {
