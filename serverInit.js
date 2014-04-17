@@ -36,6 +36,10 @@ var startCron               = require('./cronBatchInsert.js').startCron;
 
 var cypherURL = "http://localhost:7474/db/data/cypher";
 
+// which dir to use
+// var theDir = dirPaths.dummyJSON;
+var theDir = dirPaths.jsonDir;
+
 // move files from archive to original directory, remove in production
 moveJson()
 .then(function (movedFiles) {
@@ -69,8 +73,8 @@ moveJson()
 // *note* good place for cron job?
 // read json directory for files to insert
 .then(function (results) {
-  // return readJsonDir(dirPaths.dummyJSON);
-  return readJsonDir(dirPaths.jsonDir);
+  // return readJsonDir(theDir);
+  return readJsonDir(theDir, 100);
 })
 // batch insert json files
 .then(function (docList) {
@@ -78,8 +82,8 @@ moveJson()
   consoleStart(filenames, "files to move to archive after batch insert");
   // should return a list of filenames that were inserted
   insertBatchRec("result", "response", docList, 0);
-  // return moveJson(dirPaths.dummyJSON, dirPaths.scrapeArchive, filenames);
-  return moveJson(dirPaths.jsonDir, dirPaths.scrapeArchive, filenames);
+  // return moveJson(theDir, dirPaths.scrapeArchive, filenames);
+  return moveJson(theDir, dirPaths.scrapeArchive, filenames);
 })
 .then(function (movedFiles) {
   consoleStart(movedFiles, 'files moved after batch insert');

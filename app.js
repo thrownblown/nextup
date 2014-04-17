@@ -15,7 +15,6 @@ var docFetch = require('./docFetch');
 
 var app = express();
 
-
 // all environments
 app.set('port', process.env.PORT || 3000);
 app.set('views', path.join(__dirname, 'views'));
@@ -27,7 +26,6 @@ app.use(express.urlencoded());
 app.use(express.methodOverride());
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
-var cypherURL = "http://localhost:7474/db/data/cypher";
 
 
 // development only
@@ -75,17 +73,9 @@ app.get('/article/*', function(req, res) {
   });
 });
 
-
-
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
 });
 
-// Require BatchOP
-require("./batchOp.js");
-
 // require serverInit.js
 require('./serverInit.js');
-
-// require cronBatchInsert.js to test
-// require("./cronBatchInsert.js");
