@@ -15,8 +15,8 @@ var docFetch = require("./docFetch.js");
 var rest = require('restler');
 var Promise = require('bluebird');
 
-var batchURL = "http://localhost:7474/db/data/batch";
-var cypherURL = "http://localhost:7474/db/data/cypher";
+var batchURL = process.env.BATCH || "http://localhost:7474/db/data/batch";
+var cypherURL = process.env.CYPHER || "http://localhost:7474/db/data/cypher";
 
 var consoleStart = require('./helpers/commonlyUsed.js').consoleStart;
 // helper functions
@@ -72,41 +72,6 @@ var clearQuery = function () {
   return data;
 };
 
-// DUMMY DATA
-var dummyDoc1 = {
-  title : "greg one",
-  url   : "http://www.gregorylull.com",
-  wordtable : {
-    i    : 1,
-    like : 1,
-    dogs : 1
-  },
-  wordcount : 3,
-};
-
-var dummyDoc2 = {
-  title : "greg two",
-  url   : "http://www.iamthelull.com",
-  wordtable : {
-    i    : 1,
-    want : 1,
-    dogs : 1
-  },
-  wordcount : 3,
-};
-
-var dummyDoc3 = {
-  title : "greg three",
-  url   : "http://www.glull.com",
-  wordtable : {
-    i    : 1,
-    need : 1,
-    dogs : 1,
-    too  : 1
-  },
-  wordcount : 4,
-};
-
 // creates the query to insert a doc
 // returns an obj with the query and its request id {query: query, reqID: reqID}
 var insertDocBatch = function (doc, reqID) {
@@ -141,7 +106,7 @@ var addLabelBatch = function (label, nodeID, reqID) {
   var cmd = {};
   cmd.method = "POST";
   cmd.id = reqID;
-  cmd.to = "{" + nodeID +"}/labels"
+  cmd.to = "{" + nodeID +"}/labels";
   cmd.body = [label];
 
   return {cmd: cmd, reqID: reqID};
@@ -234,7 +199,7 @@ var batchInsert = function (doc, requestID, num) {
   // add label to Doc
   var labelCMD = addLabelBatch("Document", docCMD.reqID, requestID);
   query.push(labelCMD.cmd);
-  requestID++
+  requestID++;
 
   // iterate through words and create queries in order
   for (var word in doc.wordtable) { 
@@ -249,7 +214,7 @@ var batchInsert = function (doc, requestID, num) {
         // add a label to the word
         var labelCMD = addLabelBatch("Word", wordCMD.reqID, requestID);
         query.push(labelCMD.cmd);
-        requestID++
+        requestID++;
 
         // create relationship
         var relCMD = createRelationshipBatch(docCMD.reqID, wordCMD.reqID, requestID, false, tfValue);
@@ -359,7 +324,7 @@ var updateConnections = function (wToUpdate, results, num) {
 };
 // Creates tfidf properties, creates vectors and cosine similarity
 var cosineSimilarityInsertion = function(url) {
-  var tfidfQuery = { query: "MATCH (n:Document) WITH count(DISTINCT n) AS totalDocs MATCH (d:Document)-[r:HAS]->(w:Word) WITH r.tf AS tf,w.connections AS totalRel,1+(log((totalDocs)/(w.connections))) AS idf,d,r,w SET r.TFIDF = toFloat(tf) * toFloat(idf)"};
+  var tfidfQuery = { query: "MATCH (n:Document) WITH count(DISTINCT n) AS totalDocs MATCH (d:Document)-[r:HAS]->(w:Word) WITH r.tf AS tf,w.connections AS totalRel,1.0+1.0*(log((totalDocs)/(w.connections))) AS idf,d,r,w SET r.TFIDF = toFloat(tf) * toFloat(idf)"};
   var vectorQuery = { query: "MATCH (d:Document)-[r:HAS]->(w:Word) WITH SQRT(REDUCE(dot = 0, a IN COLLECT(r.TFIDF) | dot + a*a)) AS vector, d SET d.vector = vector"};
   var cosSimQuery = { query: "MATCH (d1:Document)-[x:HAS]->(w:Word)<-[y:HAS]-(d2:Document) WITH SUM(x.TFIDF * y.TFIDF) AS xyDotProduct, d1.vector AS xMagnitude, d2.vector AS yMagnitude, d1, d2 CREATE UNIQUE (d1)-[s:SIMILARITY]-(d2) SET s.similarity = xyDotProduct / (xMagnitude * yMagnitude)"};
   rest.postJson(url, tfidfQuery)
@@ -432,7 +397,7 @@ var clearNeo4jDBAsync = function (url, option) {
       } else {
         resolve(result);
       }
-    })
+    });
   });
 };
 
@@ -449,7 +414,7 @@ var populateMasterDictAsync = function (result, url, option) {
       }
     });
   });
-}
+};
 
 /***
  *      ______                                 _         

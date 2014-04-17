@@ -13,12 +13,7 @@ var mongoose = require('mongoose');
 var readURL = require('./readURL');
 var docFetch = require('./docFetch');
 
-// require neo4j
-var neo4jURL = "http://127.0.0.1:7474";
-var cypherURL = "http://localhost:7474/db/data/cypher";
-
 var app = express();
-
 
 // all environments
 app.set('port', process.env.PORT || 3000);
