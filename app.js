@@ -13,6 +13,7 @@ var mongoose = require('mongoose');
 var readURL = require('./readURL');
 var docFetch = require('./docFetch');
 var cypherURL = process.env.CYPHER || "http://localhost:7474/db/data/cypher";
+var batch = require('./batchOp');
 
 var app = express();
 
@@ -27,6 +28,8 @@ app.use(express.urlencoded());
 app.use(express.methodOverride());
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+app.use(express.urlencoded());
 
 
 // development only
@@ -34,16 +37,60 @@ if ('development' == app.get('env')) {
   app.use(express.errorHandler());
 }
 
-app.get('/', routes.index);
+app.get('/', function(req, res) {
+  // routes.index;
+  docFetch.randNodeFetch(cypherURL, 25)
+  .then(function(result) {
+    return res.send(result);
+  });
+});
+
 app.get('/users', user.list);
 
-app.get('/article/*', function(req, res) {
-  var fullUrl = req.url;
+// app.get('/article/*', function(req, res) {
+//   var fullUrl = req.url;
 
-  var articleUrl = fullUrl.slice(fullUrl.indexOf("http"));
-  var mongoURL = { url: articleUrl };
+//   var articleUrl = fullUrl.slice(fullUrl.indexOf("http"));
+//   var mongoURL = { url: articleUrl };
+//   var response = [];
+
+//   readURL.Site.find(mongoURL)
+//   .exec(function(err, result) {
+//     if (result.length === 0) {
+//       console.log("Not in mongo");
+//       readURL.readSiteByUrl(articleUrl)
+//       .then(function(readJSON) {
+//         response.push(readJSON);
+//         return response;
+//       })
+//       .then(function() {
+//         return docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10);
+//       })
+//       .then(function(topCosSim) {
+//         return response.push(topCosSim);
+//       })
+//       .then(function() {
+//         return res.send(response);
+//       });
+//     } else {
+//       console.log("Found in mongo");
+//       response.push(result);
+//       docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10)
+//       .then(function(topCosSim) {
+//         response.push(topCosSim);
+//         return res.send(response);
+//         //res.render('index', )
+//       });
+//     }
+//   });
+// });
+app.post('/article/', function(req, res) {
+  var request = JSON.parse(req.body);
+  var mongoURL = { url: request.url };
   var response = [];
-
+  if (!batch.isInNeo4j) {
+    res.send("Invalid Request");
+  }
   readURL.Site.find(mongoURL)
   .exec(function(err, result) {
     if (result.length === 0) {
@@ -54,7 +101,7 @@ app.get('/article/*', function(req, res) {
         return response;
       })
       .then(function() {
-        return docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10);
+        return docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 25);
       })
       .then(function(topCosSim) {
         return response.push(topCosSim);
@@ -63,9 +110,9 @@ app.get('/article/*', function(req, res) {
         return res.send(response);
       });
     } else {
-      console.log("Found in mongo, result from mongo is ", result);
+      console.log("Found in mongo");
       response.push(result);
-      docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 10)
+      docFetch.cosSimFetch(cypherURL, articleUrl, 0.0, 25)
       .then(function(topCosSim) {
         response.push(topCosSim);
         return res.send(response);

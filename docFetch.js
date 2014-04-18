@@ -14,7 +14,7 @@ exports.cosSimFetch = function(cypherURL, docURL, cosSim, limit) {
     .on("success", function(result) {
       // console.log("\nTop " + limit + " similar documents to: " + docURL + "\n");
       for (var i = 0; i < result.data.length; i++) {
-        var sim = { title: result.data[i][0].data.title, url: result.data[i][0].data.url, similarity: result.data[i][1], };
+        var sim = { title: result.data[i][0].data.title, url: result.data[i][0].data.url, similarity: result.data[i][1] };
         resultArray.push(sim);
         // console.log("Title: ", result.data[i][0].data.title, "\nSimilarity: ", result.data[i][1], "\nUrl: ", result.data[i][0].data.url, "\n");
       }
@@ -27,4 +27,24 @@ exports.cosSimFetch = function(cypherURL, docURL, cosSim, limit) {
   });
 };
 
+exports.randNodeFetch = function(cypherURL, limit) {
+  return new Promise(function(resolve, reject) {
+    limit = limit || 5;
+    var resultArray = [];
+    var query = {
+      query: "MATCH (d:Document) WITH d, rand() AS rand RETURN d ORDER BY rand LIMIT " + limit
+    };
+    rest.postJson(cypherURL, query)
+    .on("success", function(result) {
+      for (var i = 0; i < result.data.length; i++) {
+        var sim = { title: result.data[i][0].data.title, url: result.data[i][0].data.url};
+        resultArray.push(sim);
+      }
+      resolve(resultArray);
+    })
+    .on("failure", function(result) {
+      reject(result);
+    });
+  });
+};
 
