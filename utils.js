@@ -1,4 +1,5 @@
 var sanitizer = require('sanitizer');
+var Promise = require("bluebird");
 
 //http://www.commitstrip.com/en/2014/02/24/coder-on-the-verge-of-extinction/
 
@@ -86,7 +87,34 @@ module.exports.makeJSON = function(str){
     }
   }
 return returnObj;
-}
+};
+
+module.exports.readdir = function (fromSource, theFilter) {
+  if (!fromSource) {throw 'readdirFilter source is not specified';}
+
+  // // future TODO, check input
+  // // if the theFilter is defined, but not string, function, or an array, it's the wrong format
+
+  // // future TODO, multiples ways to filter
+  // now that the input has been checked, read the directory and use ext, regexp, or filter functions
+  return fs.readdirAsync(fromSource)
+    .then(function (result) {
+      var results = [];
+      // filter is a string of .ext name, NOT regex
+      if (typeof theFilter === 'string') {
+        for (var i = 0; i < result.length; i++) {
+          var filename = result[i];
+          if (filterString(filename, theFilter)) {
+            results.push(filename);
+          }
+        }
+      }
+      return Promise.resolve(results);
+    }
+  );
+
+};
+
 
 var commonWords = {
   the:null,
@@ -130,7 +158,6 @@ var commonWords = {
   there:null,
   their:null,
   what:null,
-  Word:null,
   so:null,
   up:null,
   out:null,
@@ -151,7 +178,6 @@ var commonWords = {
   him:null,
   know:null,
   take:null,
-  Word:null,
   people:null,
   into:null,
   year:null,
@@ -172,7 +198,6 @@ var commonWords = {
   over:null,
   think:null,
   also:null,
-  Word:null,
   back:null,
   after:null,
   use:null,
@@ -187,4 +212,4 @@ var commonWords = {
   new:null,
   want:null,
   because:null 
-}
+};
