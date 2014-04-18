@@ -87,6 +87,28 @@ var addToDoclist = function (result, master) {
   return master;
 };
 
+// checks if a returned object from the client is in the master document list
+var isInNeo4j = function (object, master) {
+  master = master || masterDoclist;
+
+  if (!object) { 
+    console.log("client request obj not defined");
+    return false;
+
+  } else if (!object.title || !object.url) {
+    console.log("object title or url is undefined/null");
+    return false;
+
+  // check master list
+  } else if (!master[object.title] && object.url !== master[object.title].url) {
+    console.log("does not match neo4j");
+    return false;
+
+  } else {
+    return true;
+  }
+};
+
 // assumption: only create a master dictionary during big batch imports
 // master dictionary has word and it's node location in the neo4j database
 var masterDict = {_size: 0};
@@ -575,6 +597,7 @@ module.exports.populateMasterDoclistAsync = populateMasterDoclistAsync;
 module.exports.insertBatchRec = insertBatchRec;
 module.exports.masterDoclist = masterDoclist;
 module.exports.masterDict = masterDict;
+module.exports.isInNeo4j = isInNeo4j;
 
 // REFERENCE
 /*
