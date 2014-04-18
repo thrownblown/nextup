@@ -25,6 +25,7 @@ or mongoDB as alternative
 var consoleStart            = require('./helpers/commonlyUsed.js').consoleStart;
 var clearNeo4jDBAsync       = require('./batchOp.js').clearNeo4jDBAsync;
 var populateMasterDictAsync = require('./batchOp.js').populateMasterDictAsync;
+var populateMasterDoclistAsync = require('./batchOp.js').populateMasterDoclistAsync;
 var insertBatchRec          = require('./batchOp.js').insertBatchRec;
 
 var moveJson                = require('./cronBatchInsert.js').moveJson;
@@ -68,7 +69,10 @@ moveJson()
 .catch(function (err) {
   consoleStart(err, "Dict pop error");
 })
-// *note* good place for cron job?
+// if db is not empty, populate master doc list
+.then(function (results) {
+  return populateMasterDoclistAsync();
+})
 // read json directory for files to insert
 .then(function (results) {
   // returns a promisified array of *parsed* json document objects;

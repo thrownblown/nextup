@@ -1,3 +1,4 @@
+'use strict';
 /*
 PLAN:
   a. create master dictionary
@@ -54,15 +55,47 @@ var addToDict = function (result, master) {
   return master;
 };
 
+var addToDoclist = function (result, master) {
+  var len = result.data.length;
+
+  for (var i = 0; i < len; i++) {
+    var doc = result.data[i];
+    if (master[doc[0]] === undefined) {
+      var docTitle = result.data[i][0];
+      var docURL   = result.data[i][1];
+
+      master[docTitle] = {};
+      master[docTitle].title = docTitle;
+      master[docTitle].link = docURL;
+
+      master._size++;
+    }
+  }
+
+  consoleStart(master, "Master Document list");
+  return master;
+};
+
 // assumption: only create a master dictionary during big batch imports
 // master dictionary has word and it's node location in the neo4j database
 var masterDict = {_size: 0};
 var wordsToAdd = [];
 var wordsToUpdate = [];
 
+// master doclist is an object that contains titles of documents that are in the neo4j database
+// we use the list to prevent a double entry
+var masterDoclist = {_size: 0};
+var docsToAdd = [];
+
 var masterDictQuery = function () {
   var data = {};
   data.query = "MATCH (w:Word) RETURN w";
+  return data;
+}
+
+var masterDocQuery = function () {
+  var data = {};
+  data.query = "MATCH (d:Document) RETURN d.title, d.url";
   return data;
 };
 
@@ -148,7 +181,7 @@ var updateRelationshipIndexBatch = function (relationshipID, reqID, tfValue) {
   cmd.to = "/index/relationship/my_rels";
   cmd.body = {
     uri : "{" + relationshipID + "}",
-    key : "TF",
+    key : "tf",
     value : tfValue
   };
   return {cmd: cmd, reqID: reqID };
@@ -200,6 +233,9 @@ var batchInsert = function (doc, requestID, num) {
   var labelCMD = addLabelBatch("Document", docCMD.reqID, requestID);
   query.push(labelCMD.cmd);
   requestID++;
+
+  // new docs to be added to global variable docsToAdd
+  docsToAdd.push({doc: doc.title, reqID: docCMD.reqID});
 
   // iterate through words and create queries in order
   for (var word in doc.wordtable) { 
@@ -304,6 +340,31 @@ var updateDict = function (newWords, result, num) {
   return masterDict;
 };
 
+// updates the master document list on the server side
+var updateDoclist = function (newDocs, result, num) {
+  num = num || 0;
+  for (var i = 0; i < newDocs.length; i++) {
+    var docTitle = newDocs[i].doc;
+    var id = newDocs[i].reqID;
+
+    // retrieve information from result object
+    var link = result[id].body.data.link;
+
+    // adds word into the master document list
+    masterDoclist[docTitle] = {};
+    masterDoclist[docTitle].title = docTitle;
+    masterDoclist[docTitle].url = link;
+
+    // update the size of the dictionary
+    masterDoclist._size++;
+  }
+  consoleStart(docsToAdd, "newly added docs: " + num);
+  consoleStart(masterDoclist, "current master doclist " + num);
+  // empty the words to be added
+  docsToAdd = [];
+  return masterDoclist;
+};
+
 var updateConnections = function (wToUpdate, results, num) {
   num = num || 0;
   for (var i = 0; i < wToUpdate.length; i++) {
@@ -355,15 +416,23 @@ var insertBatchRec = function (result, response, documentList, num) {
   // pre-existing dictionary words will have their connections updated to reflect what is stored in the db
   updateConnections(wordsToUpdate, result, num);
 
+  // update master document list to reflect neo4j status
+  updateDoclist(docsToAdd, result, num);
+
   // the second OR argument executes if the document list contains hidden system files that should not have been read
   if (documentList.length === 0 || documentList[documentList.length-1] === undefined) {
     cosineSimilarityInsertion(cypherURL);
     return; 
   }
+  
+  // TODO
+  // IF doc in master list, OR doc.title = null, OR doc.url = null, OR doc.wordunique < 50; SKIP
+  var doc = documentList.pop();
 
   // note, instead of popping off an item and and mutating original, maybe just count?
   // double note, since the directory is read alphabetical order (i think), be careful of hidden files
-  var doc = documentList.pop();
+
+  // if doc.title is IN masterDoclist, pop off the next article. so, while it is defined, don't do anything.
 
   rest.postJson(batchURL, batchInsert(doc, 0, num+1).query)
     .on("complete", function (result, response) {
@@ -416,6 +485,20 @@ var populateMasterDictAsync = function (result, url, option) {
   });
 };
 
+var populateMasterDoclistAsync = function (result, url, option) {
+  url = url || cypherURL;
+  option = option || masterDocQuery();
+  return new Promise(function (resolve, reject) {
+    rest.postJson(url, option).on("complete", function (result, response){
+      if (result instanceof Error) {
+        reject(result);
+      } else {
+        resolve(addToDoclist(result, masterDoclist));
+      }
+    });
+  });
+};
+
 /***
  *      ______                                 _         
  *     |  ____|                               | |        
@@ -430,8 +513,8 @@ var populateMasterDictAsync = function (result, url, option) {
 
 module.exports.clearNeo4jDBAsync = clearNeo4jDBAsync;
 module.exports.populateMasterDictAsync = populateMasterDictAsync;
+module.exports.populateMasterDoclistAsync = populateMasterDoclistAsync;
 module.exports.insertBatchRec = insertBatchRec;
-
 
 // REFERENCE
 /*
