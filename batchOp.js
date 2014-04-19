@@ -1,15 +1,26 @@
 /*
-PLAN:
-  a. create master dictionary
-    1. query database for all word nodes
-    2. add word nodes to master dictionary
-  b. doc insertion
-    1. insert doc node
+// **
+//  *      _____  _             
+//  *     |  __ \| |            
+//  *     | |__) | | __ _ _ __  
+//  *     |  ___/| |/ _` | '_ \ 
+//  *     | |    | | (_| | | | |
+//  *     |_|    |_|\__,_|_| |_|
+//  *                           
+//  *                           
+
+1. create master dictionary and document list
+  - query database for all word nodes and document
+  - add word nodes to master dictionary
+  - add doc titles and urls to master document list
+2. entire document batch insertion
+    1. check if doc 
     2. check if word node is in master/server
        - if yes -> create relationship between doc and word
        - if no  -> create word node, create relationship between doc and word
-  c. if doc and word insertion is successful, update master dictionar
-  d. insert rest of doc recursively
+3. if doc and word insertion is successful, update master dictionar
+4. insert rest of doc recursively
+
 */
 var docFetch = require("./docFetch.js");
 var rest = require('restler');
@@ -54,15 +65,64 @@ var addToDict = function (result, master) {
   return master;
 };
 
+var addToDoclist = function (result, master) {
+  var len = result.data.length;
+  master = master || masterDoclist;
+
+  for (var i = 0; i < len; i++) {
+    var doc = result.data[i];
+    if (master[doc[0]] === undefined) {
+      var docTitle = result.data[i][0];
+      var docURL   = result.data[i][1];
+
+      master[docTitle] = {};
+      master[docTitle].title = docTitle;
+      master[docTitle].link = docURL;
+
+      master._size++;
+    }
+  }
+
+  consoleStart(master, "Master Document list");
+  return master;
+};
+
+// checks if a returned object from the client is in the master document list
+var isInNeo4j = function (object, master) {
+  master = master || masterDoclist;
+  var check = false;
+  if (!object) {
+    return check;
+  }
+  if (!object.title || !object.url) {
+    return check;
+  }
+  if (master[object.title] && object.title === master[object.title].title && object.url === master[object.title].url) {
+    check = true;
+  }
+  return check;
+};
+
 // assumption: only create a master dictionary during big batch imports
 // master dictionary has word and it's node location in the neo4j database
 var masterDict = {_size: 0};
 var wordsToAdd = [];
 var wordsToUpdate = [];
 
+// master doclist is an object that contains titles of documents that are in the neo4j database
+// we use the list to prevent a double entry
+var masterDoclist = {_size: 0};
+var docsToAdd = [];
+
 var masterDictQuery = function () {
   var data = {};
   data.query = "MATCH (w:Word) RETURN w";
+  return data;
+};
+
+var masterDocQuery = function () {
+  var data = {};
+  data.query = "MATCH (d:Document) RETURN d.title, d.url";
   return data;
 };
 
@@ -148,7 +208,7 @@ var updateRelationshipIndexBatch = function (relationshipID, reqID, tfValue) {
   cmd.to = "/index/relationship/my_rels";
   cmd.body = {
     uri : "{" + relationshipID + "}",
-    key : "TF",
+    key : "tf",
     value : tfValue
   };
   return {cmd: cmd, reqID: reqID };
@@ -200,6 +260,9 @@ var batchInsert = function (doc, requestID, num) {
   var labelCMD = addLabelBatch("Document", docCMD.reqID, requestID);
   query.push(labelCMD.cmd);
   requestID++;
+
+  // new docs to be added to global variable docsToAdd
+  docsToAdd.push({doc: doc.title, reqID: docCMD.reqID});
 
   // iterate through words and create queries in order
   for (var word in doc.wordtable) { 
@@ -304,6 +367,31 @@ var updateDict = function (newWords, result, num) {
   return masterDict;
 };
 
+// updates the master document list on the server side
+var updateDoclist = function (newDocs, result, num) {
+  num = num || 0;
+  for (var i = 0; i < newDocs.length; i++) {
+    var docTitle = newDocs[i].doc;
+    var id = newDocs[i].reqID;
+
+    // retrieve information from result object
+    var link = result[id].body.data.url;
+
+    // adds word into the master document list
+    masterDoclist[docTitle] = {};
+    masterDoclist[docTitle].title = docTitle;
+    masterDoclist[docTitle].url = link;
+
+    // update the size of the dictionary
+    masterDoclist._size++;
+  }
+  consoleStart(docsToAdd, "newly added docs: " + num);
+  consoleStart(masterDoclist, "current master doclist " + num);
+  // empty the words to be added
+  docsToAdd = [];
+  return masterDoclist;
+};
+
 var updateConnections = function (wToUpdate, results, num) {
   num = num || 0;
   for (var i = 0; i < wToUpdate.length; i++) {
@@ -343,27 +431,82 @@ var cosineSimilarityInsertion = function(url) {
   });
 };
 
+//
+// if doc is already in the master doclist (duplicate) -> false
+// OR doc.title = null / undefined -> false
+// OR doc.url   = null / undefined -> false
+// OR doc.wordunique is < 25       -> false
+var isDocValid = function (doc, master, minUniqueWords, num) {
+  // has to at least have an input
+  if (!doc) { return false; }
+
+  // set up default variables
+  master = master || masterDoclist;
+  num = num || 0;
+  minUniqueWords = minUniqueWords || 25;
+
+  // setup tests
+  if (doc.title === null || doc.title === undefined) {
+    consoleStart(doc.file, " doc " + num + " has no title. here is filename:");
+    return false;
+
+  } else if (doc.link === null || doc.link === undefined) {
+    consoleStart(doc.file, " doc " + num + " has no url. here is filename:");
+    return false;
+
+  } else if (master[doc.title]) {
+    consoleStart(doc.file, " doc " + num + " is a duplicate. here is filename:");
+    return false;
+
+  } else if (doc.wordunique < minUniqueWords) {
+    consoleStart(doc.file, " doc " + num + " is not unique enough. here is the filename:");
+    return false;
+
+  } else {
+    consoleStart(doc.file, " is valid ", num);
+    return true;
+  }
+};
+
 // recursive function that inserts docs only when the previous document has been inserted
 var insertBatchRec = function (result, response, documentList, num) {
   // num is for debugging purposes, shows which queries goes with which results
   num = num || 0;
   consoleStart(result, "Result after " + num + " insert");
+  var doc;
 
   // after words have been successfully inserted into the db, the dictionary has to be udpated
-  updateDict(wordsToAdd, result, num);
+  if (wordsToAdd.length > 0) {updateDict(wordsToAdd, result, num); }
 
   // pre-existing dictionary words will have their connections updated to reflect what is stored in the db
-  updateConnections(wordsToUpdate, result, num);
+  if (wordsToUpdate.length > 0) {updateConnections(wordsToUpdate, result, num); }
+
+  // update master document list to reflect neo4j status
+  if (docsToAdd.length > 0) { updateDoclist(docsToAdd, result, num); }
 
   // the second OR argument executes if the document list contains hidden system files that should not have been read
-  if (documentList.length === 0 || documentList[documentList.length-1] === undefined) {
+  if (documentList.length === 0) {
     cosineSimilarityInsertion(cypherURL);
     return; 
   }
+  /*--------------------------
+  // everything above is necessary after the result;
+  --------------------------*/
+  // only batch insert valid docs, i.e.: title, url, !== null or undefined, have enough unique words, and are NOT duplicates
+  // [docbad, docgood];
+  while (!isDocValid(doc) && documentList.length !== 0){
+    doc = documentList.pop();
+    // if all the remaining docs are not valid, then stop the function 
+    if (documentList.length === 0 && !isDocValid(doc)) {
+      console.log('no valid docs left');
+      return; 
+    }
+  }
+  console.log("valid doc: ", doc.title, ", count: ", num);
 
+  // TODO
   // note, instead of popping off an item and and mutating original, maybe just count?
   // double note, since the directory is read alphabetical order (i think), be careful of hidden files
-  var doc = documentList.pop();
 
   rest.postJson(batchURL, batchInsert(doc, 0, num+1).query)
     .on("complete", function (result, response) {
@@ -416,6 +559,20 @@ var populateMasterDictAsync = function (result, url, option) {
   });
 };
 
+var populateMasterDoclistAsync = function (result, url, option) {
+  url = url || cypherURL;
+  option = option || masterDocQuery();
+  return new Promise(function (resolve, reject) {
+    rest.postJson(url, option).on("complete", function (result, response){
+      if (result instanceof Error) {
+        reject(result);
+      } else {
+        resolve(addToDoclist(result, masterDoclist));
+      }
+    });
+  });
+};
+
 /***
  *      ______                                 _         
  *     |  ____|                               | |        
@@ -430,8 +587,11 @@ var populateMasterDictAsync = function (result, url, option) {
 
 module.exports.clearNeo4jDBAsync = clearNeo4jDBAsync;
 module.exports.populateMasterDictAsync = populateMasterDictAsync;
+module.exports.populateMasterDoclistAsync = populateMasterDoclistAsync;
 module.exports.insertBatchRec = insertBatchRec;
-
+module.exports.masterDoclist = masterDoclist;
+module.exports.masterDict = masterDict;
+module.exports.isInNeo4j = isInNeo4j;
 
 // REFERENCE
 /*

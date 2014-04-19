@@ -12,21 +12,23 @@
 1. Populate master dictionary by querying DB
    - IF DB is empty, then move all scrapArchived to json (async ok!)
    - alternative, read archived from mongoDB (archive = true, false)
-2. After master dict (promise), execute initiate / cron
-check hacker news rss feed for new news/sites to scrap
-scrape 
-   - if there are new urls and save as file.json to json folder 
-or mongoDB as alternative
+2. After master dict (promise), execute initiate / cron check hacker news rss feed for new news/sites to scrap
+   - if there are new urls and save as file.json to json folder or mongoDB as alternative
    - read directory and batchInsert
    - move inserted file to archive
 
 */
 
-var consoleStart            = require('./helpers/commonlyUsed.js').consoleStart;
-var clearNeo4jDBAsync       = require('./batchOp.js').clearNeo4jDBAsync;
-var populateMasterDictAsync = require('./batchOp.js').populateMasterDictAsync;
-var insertBatchRec          = require('./batchOp.js').insertBatchRec;
+// from commonly used
+var consoleStart               = require('./helpers/commonlyUsed.js').consoleStart;
 
+// from batchOp.js
+var clearNeo4jDBAsync          = require('./batchOp.js').clearNeo4jDBAsync;
+var populateMasterDictAsync    = require('./batchOp.js').populateMasterDictAsync;
+var populateMasterDoclistAsync = require('./batchOp.js').populateMasterDoclistAsync;
+var insertBatchRec             = require('./batchOp.js').insertBatchRec;
+
+// from cronBatchInsert.js
 var moveJson                = require('./cronBatchInsert.js').moveJson;
 var readJsonDir             = require('./cronBatchInsert.js').readJsonDir;
 var dirPaths                = require('./cronBatchInsert.js').dirPaths;
@@ -41,7 +43,7 @@ var theDir = dirPaths.jsonDir;
 // move files from archive to original directory, remove in production
 moveJson()
 .then(function (movedFiles) {
-  consoleStart(movedFiles,'files moved from archive to testDir');
+  consoleStart(movedFiles,'files moved from archive to: ' + theDir);
 })
 // clear database for testing purposes, remove in production
 .then(function () {
@@ -68,11 +70,17 @@ moveJson()
 .catch(function (err) {
   consoleStart(err, "Dict pop error");
 })
-// *note* good place for cron job?
+// if db is not empty, populate master doc list
+.then(function (results) {
+  return populateMasterDoclistAsync();
+})
 // read json directory for files to insert
 .then(function (results) {
   // returns a promisified array of *parsed* json document objects;
   return readJsonDir(theDir);
+})
+.catch(function (err) {
+  consoleStart(err, "serverInit readJsonDir() errored out!");
 })
 // batch insert json files
 .then(function (docList) {
@@ -83,8 +91,11 @@ moveJson()
   // return moveJson(theDir, dirPaths.scrapeArchive, filenames);
   return moveJson(theDir, dirPaths.scrapeArchive, filenames);
 })
+.catch(function (err) {
+  consoleStart(err, "serverInit moveJson() errored out!");
+})
 .then(function (movedFiles) {
-  consoleStart(movedFiles, 'files moved after batch insert');
+  consoleStart(movedFiles, 'moved to scrapeArchive from: ' + theDir);
 })
 // now that the initial population / dictionary word retrieval of the neo4j database is finished, the cron job can start?
 .then(function () {
