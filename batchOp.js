@@ -90,23 +90,17 @@ var addToDoclist = function (result, master) {
 // checks if a returned object from the client is in the master document list
 var isInNeo4j = function (object, master) {
   master = master || masterDoclist;
-
-  if (!object) { 
-    console.log("client request obj not defined");
-    return false;
-
-  } else if (!object.title || !object.url) {
-    console.log("object title or url is undefined/null");
-    return false;
-
-  // check master list
-  } else if (!master[object.title] && object.url !== master[object.title].url) {
-    console.log("does not match neo4j");
-    return false;
-
-  } else {
-    return true;
+  var check = false;
+  if (!object) {
+    return check;
   }
+  if (!object.title || !object.url) {
+    return check;
+  }
+  if (master[object.title] && object.title === master[object.title].title && object.url === master[object.title].url) {
+    check = true;
+  }
+  return check;
 };
 
 // assumption: only create a master dictionary during big batch imports
@@ -124,7 +118,7 @@ var masterDictQuery = function () {
   var data = {};
   data.query = "MATCH (w:Word) RETURN w";
   return data;
-}
+};
 
 var masterDocQuery = function () {
   var data = {};

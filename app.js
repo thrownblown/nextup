@@ -85,11 +85,14 @@ app.get('/users', user.list);
 //   });
 // });
 app.post('/article/', function(req, res) {
-  var request = JSON.parse(req.body);
+  var request = { title: req.body.title, url: req.body.url };
   var mongoURL = { url: request.url };
+  var articleUrl = request.url;
   var response = [];
-  if (!batch.isInNeo4j) {
-    res.send("Invalid Request");
+  console.log(request);
+  if (!batch.isInNeo4j(request, batch.masterDoclist)) {
+    console.log("DOES THIS EVEN WORK?!?!");
+    return res.send("Invalid Request");
   }
   readURL.Site.find(mongoURL)
   .exec(function(err, result) {
