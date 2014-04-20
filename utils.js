@@ -10,8 +10,8 @@ module.exports.stripHTML = strip = function (html) {
   clean = clean.replace(/<(?:.|\n)*?>/gm, " ");
   clean = clean.replace(/(?:(?:\r\n|\r|\n|\t)\s*){2,}/ig, " ");
   clean = clean.replace("\n", " ");
-  clean = clean
-    .replace(/[\.,-\/#!$%\^&\*;:{}=\-_\?\[\]|∀→+▼►¬≡⊆⊇⊔γ”“‵³β✴×λ²↔∧₀∈⊈πςπ⊥ℕ⊤≤∷`₁′’ℓ‵∉~()čššñç한국어한국어한국어简体中文本語日語êâăкийсภาษาไทยภาษาไทยภาษาไทยü]/g," ");
+  //clean = clean
+    //.replace(/[\.,-\/#!$%\^&\*;:{}=\-_\?\[\]|∀→+▼►¬≡⊆⊇⊔γ”“‵³β✴×λ²↔∧₀∈⊈πςπ⊥ℕ⊤≤∷`₁′’ℓ‵∉~()čššñç한국어한국어한국어简体中文本語日語êâăкийсภาษาไทยภาษาไทยภาษาไทยü]/g," ");
   clean = clean.replace(/\s{2,}/g," ");
   clean = clean.replace(/"/g," ");
   clean=clean.replace("\t", " ");

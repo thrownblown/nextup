@@ -6,10 +6,11 @@ var cheerio = require('cheerio');
 var utils = require('./utils');
 var FeedParser = require('feedparser');
 
-module.exports.bigRSS = function (){
+module.exports.bigRSS = function (rss){
   var archive = fs.readdirSync('./scrapeArchive/');
   var main = fs.readdirSync('./json/');
-  var req = request('https://news.ycombinator.com/bigrss')
+  var rssFeed = rss || 'https://news.ycombinator.com/bigrss'; 
+  var req = request(rssFeed)
   var feedparser = new FeedParser();
   req.on('error', function (error) {
     // handle any request errors
@@ -34,9 +35,9 @@ module.exports.bigRSS = function (){
         .replace()
         .toLowerCase();
         //if then for directory
-        if (archive.indexOf(item.file + '.json') === -1 && main.indexOf(item.file + '.json') === -1){
+        //if (archive.indexOf(item.file + '.json') === -1 && main.indexOf(item.file + '.json') === -1){
           scrapeSite(item.link, item.title, item);
-        }
+        //}
       }
   });
 };
