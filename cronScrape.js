@@ -1,2 +1,3 @@
-var scrapeHackerNews = require('./scrapeHackerNews');
-scrapeHackerNews.bigRSS();
+// var scrapeHackerNews = require('./scrapeHackerNews');
+
+// scrapeHackerNews.bigRSS();

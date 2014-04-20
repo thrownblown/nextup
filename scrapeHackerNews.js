@@ -31,8 +31,8 @@ var FeedParser = require('feedparser');
 // }
 module.exports.bigRSS = function (){
   var archive = fs.readdirSync('./json/scrapeArchive/');
-  var FeedParser = require('feedparser')
-    , request = require('request');
+  // var FeedParser = require('feedparser')
+    // , request = require('request');
 
   var req = request('https://news.ycombinator.com/bigrss')
     , feedparser = new FeedParser();
