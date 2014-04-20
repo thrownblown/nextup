@@ -89,11 +89,11 @@ var scrapeHackerNews = require('./scrapeHackerNews');
 // this cron job checks the json folder to see if there are newly added files to be inserted into the neo4j DB.
 // jsonfiles that have been inserted into the database are archived
 var startCron = function (time) {
-  time = time || "00 */15 * * * *";
+  time = time || "00 */1 * * * *";
   return new CronJob.CronJob(time, function () {
-    console.log( "every 15 minute execute checkDir");
+    console.log( "every 1 minute execute checkDir");
     checkDir(testDir);
-    // scrapeHackerNews.bigRSS();
+    scrapeHackerNews.bigRSS();
   }, null, true, "America/Los_Angeles");
 };
 
