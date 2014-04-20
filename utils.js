@@ -10,8 +10,8 @@ module.exports.stripHTML = strip = function (html) {
   clean = clean.replace(/<(?:.|\n)*?>/gm, " ");
   clean = clean.replace(/(?:(?:\r\n|\r|\n|\t)\s*){2,}/ig, " ");
   clean = clean.replace("\n", " ");
-  //clean = clean
-    //.replace(/[\.,-\/#!$%\^&\*;:{}=\-_\?\[\]|∀→+▼►¬≡⊆⊇⊔γ”“‵³β✴×λ²↔∧₀∈⊈πςπ⊥ℕ⊤≤∷`₁′’ℓ‵∉~()čššñç한국어한국어한국어简体中文本語日語êâăкийсภาษาไทยภาษาไทยภาษาไทยü]/g," ");
+  clean = clean
+    .replace(/[\.,-\/#!$%\^&\*;:{}=\-_\?\[\]|∀→+▼►¬≡⊆⊇⊔γ”“‵³β✴×λ²↔∧₀∈⊈πςπ⊥ℕ⊤≤∷`₁′’ℓ‵∉~()čššñç한국어한국어한국어简体中文本語日語êâăкийсภาษาไทยภาษาไทยภาษาไทยü]/g," ");
   clean = clean.replace(/\s{2,}/g," ");
   clean = clean.replace(/"/g," ");
   clean=clean.replace("\t", " ");
@@ -87,7 +87,7 @@ module.exports.makeJSON = function(str){
     }
   }
 return returnObj;
-};
+}
 
 module.exports.readdir = function (fromSource, theFilter) {
   if (!fromSource) {throw 'readdirFilter source is not specified';}
@@ -158,6 +158,7 @@ var commonWords = {
   there:null,
   their:null,
   what:null,
+  Word:null,
   so:null,
   up:null,
   out:null,
@@ -178,6 +179,7 @@ var commonWords = {
   him:null,
   know:null,
   take:null,
+  Word:null,
   people:null,
   into:null,
   year:null,
@@ -198,6 +200,7 @@ var commonWords = {
   over:null,
   think:null,
   also:null,
+  Word:null,
   back:null,
   after:null,
   use:null,
@@ -212,4 +215,4 @@ var commonWords = {
   new:null,
   want:null,
   because:null 
-};
+}
