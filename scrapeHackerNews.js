@@ -6,57 +6,24 @@ var cheerio = require('cheerio');
 var utils = require('./utils');
 var FeedParser = require('feedparser');
 
-  // if url not in list
-//
-// module.exports.bigRSS = function (){
-//   request('https://news.ycombinator.com/bigrss', function (error, response, html) {
-//     if (!error && response.statusCode === 200) {
-//       var $ = cheerio.load(html);
-//       $('item').each(function(i, element){
-//         console.log(i, element.children.data)
-//         var url, title;
-//         if (element.next.data){
-//           url = element.next.data;
-//           title = i;
-//         }
-//         // url = url.replace(/(&#x2F;)/g, '/');
-//         var metadata = {
-//           title: title,
-//           url: url,
-//         };
-//         scrapeSite(url, title, metadata);
-//       });
-//     }
-//   });
-// }
 module.exports.bigRSS = function (){
-  var archive = fs.readdirSync('./json/scrapeArchive/');
-  var FeedParser = require('feedparser')
-    , request = require('request');
-
+  var archive = fs.readdirSync('./scrapeArchive/');
+  var main = fs.readdirSync('./json/');
   var req = request('https://news.ycombinator.com/bigrss')
-    , feedparser = new FeedParser();
-
+  var feedparser = new FeedParser();
   req.on('error', function (error) {
     // handle any request errors
   });
   req.on('response', function (res) {
     var stream = this;
-
     if (res.statusCode != 200) return this.emit('error', new Error('Bad status code'));
-
     stream.pipe(feedparser);
   });
 
-
-  feedparser.on('error', function(error) {
-    // always handle errors
-  });
   feedparser.on('readable', function() {
-    // This is where the action is!
     var stream = this
-      , meta = this.meta // **NOTE** the "meta" is always available in the context of the feedparser instance
-      , item;
+    var meta = this.meta
+    var item;
 
     while (item = stream.read()) {
       item.file = item.title
@@ -67,7 +34,7 @@ module.exports.bigRSS = function (){
         .replace()
         .toLowerCase();
         //if then for directory
-        if (!archive.indexOf(item.file + '.json')){
+        if (archive.indexOf(item.file + '.json') === -1 && main.indexOf(item.file + '.json') === -1){
           scrapeSite(item.link, item.title, item);
         }
       }
@@ -90,8 +57,8 @@ var scrapeSite = function(url, title, metadata, error, response, html){
 
       if (metadata.wordcount > 20 || metadata.wordtable !== {"":0}){
         fs.writeFile('./json/' + metadata.file + '.json', JSON.stringify(metadata), function (err) {
-          if (err) throw err;
-          console.log('It\'s saved! ', title);
+          //if (err) throw err;
+          //console.log('It\'s saved! ', title);
         });
       }
     }
