@@ -9,7 +9,7 @@ var FeedParser = require('feedparser');
 module.exports.bigRSS = function (){
   var archive = fs.readdirSync('./scrapeArchive/');
   var main = fs.readdirSync('./json/');
-  var req = request('https://news.ycombinator.com/bigrss')
+  var req = request('https://news.ycombinator.com/bigrss');
   var feedparser = new FeedParser();
   req.on('error', function (error) {
     // handle any request errors
@@ -21,8 +21,8 @@ module.exports.bigRSS = function (){
   });
 
   feedparser.on('readable', function() {
-    var stream = this
-    var meta = this.meta
+    var stream = this;
+    var meta = this.meta;
     var item;
 
     while (item = stream.read()) {

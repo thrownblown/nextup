@@ -1,0 +1,3 @@
+[submodule "nextupclient"]
+	path = nextupclient
+	url = git://github.com/mrnice/nextupclient.git

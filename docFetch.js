@@ -48,3 +48,25 @@ exports.randNodeFetch = function(cypherURL, limit) {
   });
 };
 
+exports.allDocFetch = function(cypherURL) {
+  return new Promise(function(resolve, reject) {
+    var resultArray = [];
+    var query = {
+      query: "MATCH (d:Document) RETURN d"
+    };
+    rest.postJson(cypherURL, query)
+    .on("success", function(result) {
+      for (var i = 0; i < result.data.length; i++) {
+        var sim = { title: result.data[i][0].data.title, url: result.data[i][0].data.url};
+        resultArray.push(sim);
+      }
+      console.log("Length of all document query: ", resultArray.length);
+      resolve(resultArray);
+    })
+    .on("failure", function(result) {
+      reject(result);
+    });
+  });
+};
+
+

@@ -84,7 +84,7 @@ app.get('/users', user.list);
 //     }
 //   });
 // });
-app.post('/article/', function(req, res) {
+app.post('/article', function(req, res) {
   var request = { title: req.body.title, url: req.body.url };
   var mongoURL = { url: request.url };
   var articleUrl = request.url;
@@ -121,6 +121,16 @@ app.post('/article/', function(req, res) {
         return res.send(response);
       });
     }
+  });
+});
+
+app.get('/all/neo4j', function(req, res) {
+  docFetch.allDocFetch(cypherURL)
+  .then(function(result) {
+    return res.send(result);
+  })
+  .catch(function(error) {
+    console.log("Errored out ", error);
   });
 });
 
