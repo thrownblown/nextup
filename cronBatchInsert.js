@@ -71,10 +71,6 @@ var dirPaths = {
 // var testDir = dummyJSON;
 var testDir = jsonDir;
 
-var scrapeHackerNews = require('./scrapeHackerNews');
-
-
-
 /***
  *       _____                        _       _     
  *      / ____|                      | |     | |    
@@ -93,7 +89,6 @@ var startCron = function (time) {
   return new CronJob.CronJob(time, function () {
     console.log( "every 1 minute execute checkDir");
     checkDir(testDir);
-    scrapeHackerNews.bigRSS();
   }, null, true, "America/Los_Angeles");
 };
 

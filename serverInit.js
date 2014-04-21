@@ -36,6 +36,9 @@ var toFilenameList          = require('./cronBatchInsert.js').toFilenameList;
 var checkEmptyDB            = require('./cronBatchInsert.js').checkEmptyDB;
 var startCron               = require('./cronBatchInsert.js').startCron;
 
+// rss reader and .json saver
+var readabilityRequestCron = require('./scrape.js').readabilityRequestCron;
+
 // which dir to use
 // var theDir = dirPaths.dummyJSON;
 var theDir = dirPaths.jsonDir;
@@ -99,7 +102,8 @@ moveJson()
 })
 // now that the initial population / dictionary word retrieval of the neo4j database is finished, the cron job can start?
 .then(function () {
-  return startCron();
+  readabilityRequestCron()
+  startCron();
 })
 .catch(function (err) {
   consoleStart(err, 'catch all errors');
