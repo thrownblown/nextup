@@ -10,10 +10,10 @@ var http = require('http');
 var path = require('path');
 var mongoose = require('mongoose');
 
-var readURL = require('./readURL');
 var docFetch = require('./docFetch');
 var cypherURL = process.env.CYPHER || "http://localhost:7474/db/data/cypher";
 var batch = require('./batchOp');
+var readURL = require('./scrape.js');
 
 var app = express();
 
